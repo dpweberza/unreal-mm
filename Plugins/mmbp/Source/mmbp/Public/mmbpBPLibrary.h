@@ -27,6 +27,9 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 {
 	GENERATED_UCLASS_BODY()
 
-	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "mmbp sample test testing"), Category = "mmbpTesting")
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "mmbp sample test testing"), Category = "MetaMask")
 	static float mmbpSampleFunction(float Param);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Generate QR Code", Keywords = "MetaMask"), Category = "MetaMask")
+		static UTexture2D* GenerateQrCode(FString TextToConvert	);
 };
