@@ -3,6 +3,7 @@
 #pragma once
 
 #include "Kismet/BlueprintFunctionLibrary.h"
+#include "ECIES.h"
 #include "mmbpBPLibrary.generated.h"
 
 /* 
@@ -32,4 +33,10 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Generate QR Code", Keywords = "MetaMask"), Category = "MetaMask")
 		static UTexture2D* GenerateQrCode(FString TextToConvert	);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Initialise ECIES", Keywords = "MetaMask"), Category = "MetaMask")
+		static UECIES* Initialise();
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Encrypt", Keywords = "MetaMask"), Category = "MetaMask")
+		static FString Encrypt(UECIES* Ecies, FString PlainText);
 };

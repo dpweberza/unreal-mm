@@ -38,6 +38,7 @@ public class mmbp : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"CryptoPP"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

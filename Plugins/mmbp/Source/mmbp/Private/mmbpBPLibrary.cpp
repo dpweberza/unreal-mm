@@ -50,3 +50,14 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 
 	return texture;
 }
+
+UECIES* UmmbpBPLibrary::Initialise()
+{
+	UECIES* Ecies = NewObject<UECIES>();
+	return Ecies;
+}
+
+FString UmmbpBPLibrary::Encrypt(UECIES* Ecies, FString PlainText)
+{
+	return Ecies->Encrypt(PlainText);
+}
