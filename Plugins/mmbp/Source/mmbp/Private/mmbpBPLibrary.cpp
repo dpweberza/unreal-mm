@@ -61,3 +61,18 @@ FString UmmbpBPLibrary::Encrypt(UECIES* Ecies, FString PlainText)
 {
 	return Ecies->Encrypt(PlainText);
 }
+
+FString UmmbpBPLibrary::GetPublicKey(UECIES* Ecies)
+{
+	return Ecies->GetPublicKeyAsString();
+}
+
+FString UmmbpBPLibrary::EncryptWithKey(UECIES* Ecies, FString PlainText, FString PublicKey)
+{
+	return Ecies->EncryptWithKey(PlainText, PublicKey);
+}
+
+FString UmmbpBPLibrary::Decrypt(UECIES* Ecies, FString CipherText)
+{
+	return Ecies->Decrypt(CipherText);
+}

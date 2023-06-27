@@ -39,4 +39,13 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Encrypt", Keywords = "MetaMask"), Category = "MetaMask")
 		static FString Encrypt(UECIES* Ecies, FString PlainText);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Get Public Key", Keywords = "MetaMask"), Category = "MetaMask")
+		static FString GetPublicKey(UECIES* Ecies);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Encrypt With Key", Keywords = "MetaMask"), Category = "MetaMask")
+		static FString EncryptWithKey(UECIES* Ecies, FString PlainText, FString PublicKey);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Decrypt", Keywords = "MetaMask"), Category = "MetaMask")
+		static FString Decrypt(UECIES* Ecies, FString CipherText);
 };

@@ -30,7 +30,9 @@ public:
 	FString Encrypt(FString PlainText);
 	FString Decrypt(FString CipherText);
 
-	FString GetPrivateKeyAsString();
+	FString EncryptWithKey(const FString& Plaintext, const FString& Base64PublicKey);
+	FString DecryptWithKey(const FString& Ciphertext, const FString& Base64PrivateKey);
+
 	FString GetPublicKeyAsString();
 
 private:

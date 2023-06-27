@@ -2,9 +2,6 @@
 
 
 #include "ECIES.h"
-#include "Internationalization/Text.h"
-
-using namespace CryptoPP;
 
 UECIES::UECIES()
 {
@@ -101,30 +98,22 @@ FString UECIES::Decrypt(FString Ciphertext)
     return FString(UTF8_TO_TCHAR(plaintext.c_str()));
 }
 
-FString UECIES::GetPrivateKeyAsString()
-{
-    std::string privateKeyStr;
-    CryptoPP::StringSink privateKeySink(privateKeyStr);
-    this->PrivateKey.Save(privateKeySink);
-
-    // Base64 encode the private key
-    TArray<uint8> privateKeyData(reinterpret_cast<const uint8*>(privateKeyStr.data()), privateKeyStr.length());
-    FString Base64PrivateKey = FBase64::Encode(privateKeyData);
-
-    return Base64PrivateKey;
-}
-
 FString UECIES::GetPublicKeyAsString()
 {
     std::string publicKeyStr;
     CryptoPP::StringSink publicKeySink(publicKeyStr);
     this->PublicKey.Save(publicKeySink);
 
-    // Base64 encode the public key
-    TArray<uint8> publicKeyData(reinterpret_cast<const uint8*>(publicKeyStr.data()), publicKeyStr.length());
-    FString Base64PublicKey = FBase64::Encode(publicKeyData);
+    std::string output;
 
-    return Base64PublicKey;
+    // Convert the public key binary to hexadecimal string
+    CryptoPP::StringSource(
+        publicKeyStr, true,
+        new CryptoPP::HexEncoder(new CryptoPP::StringSink(output))
+    );
+
+    FString hexFormat = FString(UTF8_TO_TCHAR(output.c_str()));
+    return hexFormat;
 }
 
 bool UECIES::DecodeBase64Key(const FString& Base64Key, TArray<uint8>& OutKeyData)
@@ -140,4 +129,98 @@ bool UECIES::DecodeBase64Key(const FString& Base64Key, TArray<uint8>& OutKeyData
     OutKeyData.Append((uint8*)DecodedString.GetCharArray().GetData(), DecodedString.Len());
 
     return true;
+}
+
+FString UECIES::EncryptWithKey(const FString& Plaintext, const FString& HexPublicKey)
+{
+    // Convert the hexadecimal public key to std::string
+    std::string hexString = std::string(TCHAR_TO_UTF8(*HexPublicKey));
+
+    std::string decodedString;
+    CryptoPP::StringSource ss(hexString, true,
+        new CryptoPP::HexDecoder(new CryptoPP::StringSink(decodedString))
+    );
+
+    // Load the public key from std::string
+    CryptoPP::ECIES<CryptoPP::ECP>::PublicKey publicKey;
+    publicKey.Load(
+        CryptoPP::StringSource(decodedString, true).Ref()
+    );
+
+    // Convert the FString to a std::string
+    std::string plaintext = std::string(TCHAR_TO_UTF8(*Plaintext));
+
+    std::string ciphertext;
+    CryptoPP::AutoSeededRandomPool rng;
+
+    try
+    {
+        CryptoPP::ECIES<CryptoPP::ECP>::Encryptor encryptor(publicKey);
+
+        CryptoPP::StringSource(plaintext, true,
+            new CryptoPP::PK_EncryptorFilter(rng, encryptor,
+                new CryptoPP::HexEncoder(
+                    new CryptoPP::StringSink(ciphertext)
+                )
+            )
+        );
+    }
+    catch (const CryptoPP::Exception& e)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Encryption failed: %s"), *FString(e.what()));
+        return "";
+    }
+
+    FString EncodedCiphertext = FString(UTF8_TO_TCHAR(ciphertext.c_str()));
+    FString Base64Encoded = FBase64::Encode(EncodedCiphertext);
+
+    FString Recovered = Decrypt(Base64Encoded);
+
+    return Base64Encoded;
+}
+
+FString UECIES::DecryptWithKey(const FString& Ciphertext, const FString& Base64PrivateKey)
+{
+    // Decode the Base64-encoded private key
+    TArray<uint8> PrivateKeyData;
+    if (!FBase64::Decode(Base64PrivateKey, PrivateKeyData))
+    {
+        UE_LOG(LogTemp, Error, TEXT("Failed to decode private key."));
+        return "";
+    }
+
+    // Convert the FString to a std::string
+    std::string ciphertext = std::string(TCHAR_TO_UTF8(*Ciphertext));
+
+    std::string plaintext;
+    CryptoPP::AutoSeededRandomPool rng;
+
+    try
+    {
+        CryptoPP::ECIES<CryptoPP::ECP>::PrivateKey privateKey;
+        CryptoPP::ArraySource privateKeySource(
+            PrivateKeyData.GetData(), PrivateKeyData.Num(), true
+        );
+        privateKey.Load(privateKeySource);
+
+        CryptoPP::ECIES<CryptoPP::ECP>::Decryptor decryptor(privateKey);
+
+        new CryptoPP::StringSource(ciphertext, true,
+            new CryptoPP::HexDecoder(
+                new CryptoPP::PK_DecryptorFilter(rng, decryptor,
+                    new CryptoPP::StringSink(plaintext)
+                )
+            )
+        );
+    }
+    catch (const CryptoPP::Exception& e)
+    {
+        UE_LOG(LogTemp, Error, TEXT("Decryption failed: %s"), *FString(e.what()));
+        return "";
+    }
+
+    // Convert the std::string to an FString
+    FString Plaintext = FString(UTF8_TO_TCHAR(plaintext.c_str()));
+
+    return Plaintext;
 }
