@@ -14,6 +14,7 @@
 #include "CryptoPP/include/oids.h"
 #include "CryptoPP/include/osrng.h"
 #include "CryptoPP/include/hex.h"
+#include "CryptoPP/include/base64.h"
 #include "CryptoPP/include/filters.h"
 #include "ECIES.generated.h"
 
@@ -31,7 +32,6 @@ public:
 	FString Decrypt(FString CipherText);
 
 	FString EncryptWithKey(const FString& Plaintext, const FString& Base64PublicKey);
-	FString DecryptWithKey(const FString& Ciphertext, const FString& Base64PrivateKey);
 
 	FString GetPublicKeyAsString();
 
