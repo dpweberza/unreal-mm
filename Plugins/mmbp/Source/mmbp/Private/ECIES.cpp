@@ -100,8 +100,7 @@ FString UECIES::GetPublicKeyAsString()
         new CryptoPP::Base64Encoder(new CryptoPP::StringSink(output))
     );
 
-    FString hexFormat = FString(UTF8_TO_TCHAR(output.c_str()));
-    return hexFormat;
+    return FString(UTF8_TO_TCHAR(output.c_str()));
 }
 
 bool UECIES::DecodeBase64Key(const FString& Base64Key, TArray<uint8>& OutKeyData)
