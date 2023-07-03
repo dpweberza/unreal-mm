@@ -15,5 +15,5 @@ public:
 	UMetamaskSession();
 	~UMetamaskSession();
 
-	void PrepareMessage(TMap<FString, FString> Data, bool Encrypt, FString WalletPublicKey);
+	FString PrepareMessage(TSharedPtr<FJsonObject> Data, bool Encrypt, FString WalletPublicKey);
 };

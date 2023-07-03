@@ -8,6 +8,7 @@ UMetamaskSession::~UMetamaskSession()
 {
 }
 
-void UMetamaskSession::PrepareMessage(TMap<FString, FString> Data, bool Encrypt, FString WalletPublicKey)
+FString UMetamaskSession::PrepareMessage(TSharedPtr<FJsonObject> Data, bool Encrypt, FString WalletPublicKey)
 {
+	return FString();
 }

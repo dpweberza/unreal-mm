@@ -20,4 +20,6 @@ public:
 
 	FDelegateSocketConnected DSocketConnected;
 	FDelegateSocketDisconnected DSocketDisconnected;
+
+	void Emit(FString EventName, FString Message);
 };

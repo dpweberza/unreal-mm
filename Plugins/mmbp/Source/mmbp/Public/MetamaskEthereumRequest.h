@@ -11,8 +11,8 @@ struct FMetamaskEthereumRequest
 {
 	GENERATED_BODY()
 
-		UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FString JsonRpc = "2.0";
+	UPROPERTY(EditAnywhere, BlueprintReadWrite)
+	FString JsonRpc = "2.0";
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString Id;

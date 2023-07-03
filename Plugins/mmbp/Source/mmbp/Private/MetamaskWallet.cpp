@@ -22,15 +22,15 @@ UMetamaskWallet::UMetamaskWallet(UMetamaskSession* session, UMetamaskTransport* 
     Socket(socket),
     SocketUrl(socketUrl)
 {
-    this->Socket->DSocketConnected.BindUObject(this, &UMetamaskWallet::OnSocketConnected);
-    this->Socket->DSocketDisconnected.BindUObject(this, &UMetamaskWallet::onSocketDisconnected);
-    this->MetamaskAppLinkUrl = "https://metamask.app.link";
-    this->MessageEventName = "message";
-    this->JoinChannelEventName = "join_channel";
-    this->LeaveChannelEventName = "leave_channel";
-    this->ClientsConnectedEventName = "clients_connected";
-    this->ClientsDisconnectedEventName = "clients_disconnected";
-    this->ClientsWaitingToJoinEventName = "clients_waiting_to_join";
+    Socket->DSocketConnected.BindUObject(this, &UMetamaskWallet::OnSocketConnected);
+    Socket->DSocketDisconnected.BindUObject(this, &UMetamaskWallet::onSocketDisconnected);
+    MetamaskAppLinkUrl = "https://metamask.app.link";
+    MessageEventName = "message";
+    JoinChannelEventName = "join_channel";
+    LeaveChannelEventName = "leave_channel";
+    ClientsConnectedEventName = "clients_connected";
+    ClientsDisconnectedEventName = "clients_disconnected";
+    ClientsWaitingToJoinEventName = "clients_waiting_to_join";
 }
 
 UMetamaskWallet::~UMetamaskWallet()
@@ -63,16 +63,55 @@ void UMetamaskWallet::SetMetamaskSocketWrapper(UMetamaskSocketWrapper* socket)
     this->Socket = socket;
 }
 
-void UMetamaskWallet::SendMessage(FMetamaskParameters Parameters, bool Encrypt)
+void UMetamaskWallet::SendMessage(TSharedPtr<FJsonObject> Data, bool Encrypt)
+{
+    FString Message = Session->PrepareMessage(Data, Encrypt, WalletPublicKey);
+    if (Paused)
+    {
+        DWalletReady.BindLambda([Message, this]() {
+            Socket->Emit(MessageEventName, Message);
+            DWalletReady = FDelegateWalletReady();
+        });
+    }
+    else {
+        Socket->Emit(MessageEventName, Message);
+    }
+}
+
+void UMetamaskWallet::SendOriginatorInfo()
 {
 }
 
 void UMetamaskWallet::OnWalletPaused()
 {
+    UE_LOG(LogTemp, Log, TEXT("Wallet Paused"));
+    Paused = true;
+
+    DWalletPaused.ExecuteIfBound();
 }
 
 void UMetamaskWallet::OnWalletResume()
 {
+    UE_LOG(LogTemp, Log, TEXT("Wallet Resumed"));
+    Paused = false;
+
+    DWalletConnected.ExecuteIfBound();
+
+    InitializeState();
+
+    FString Id = FGuid::NewGuid().ToString();
+
+    FMetamaskEthereumRequest Request{
+        /*.Id =*/ Id,
+        /*.Method =*/ "eth_requestAccounts",
+        /*.Parameters =*/ {
+            /*.Properties =*/ {}
+        }
+    };
+
+    SendEthereumRequest(Id, Request, false);
+
+    Connected = true;
 }
 
 void UMetamaskWallet::OnWalletReady()
@@ -139,7 +178,7 @@ void UMetamaskWallet::OnChainIdChanged(FString newChainId)
 {
 }
 
-void UMetamaskWallet::SendEthereumRequest(FString id, bool openTransport)
+void UMetamaskWallet::SendEthereumRequest(FString id, FMetamaskEthereumRequest Request, bool openTransport)
 {
 }
 

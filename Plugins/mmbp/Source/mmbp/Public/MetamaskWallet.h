@@ -8,11 +8,17 @@
 #include "MetamaskTransport.h"
 #include "MetamaskSocketWrapper.h"
 #include "MetamaskParameters.h"
+#include "MetamaskEthereumRequest.h"
 #include "MetamaskWallet.generated.h"
 
 /**
  * 
  */
+
+DECLARE_DELEGATE(FDelegateWalletReady);
+DECLARE_DELEGATE(FDelegateWalletPaused);
+DECLARE_DELEGATE(FDelegateWalletConnected);
+
 UCLASS()
 class MMBP_API UMetamaskWallet: public UObject
 {
@@ -34,9 +40,9 @@ public:
 	FString SelectedAddress;
 	FString SelectedChainId;
 	FString WalletPublicKey;
-	bool IsConnected;
-	bool IsPaused;
-	bool IsAuthorized;
+	bool IsConnected() { return this->Connected; };
+	bool IsPaused() { return this->Paused; };
+	bool IsAuthorized() { return this->Authorized; };
 
 	void SetMetamaskTransport(UMetamaskTransport* transport);
 	void SetMetamaskSocketWrapper(UMetamaskSocketWrapper* socket);
@@ -44,7 +50,8 @@ public:
 	static TArray<FString> MethodsToRedirect;
 
 protected:
-	void SendMessage(FMetamaskParameters Parameters, bool Encrypt);
+	void SendMessage(TSharedPtr<FJsonObject> Data, bool Encrypt);
+	void SendOriginatorInfo();
 	void OnWalletPaused();
 	void OnWalletResume();
 	void OnWalletReady();
@@ -63,8 +70,16 @@ protected:
 	void OnEthereumRequestReceived(FString id);
 	void OnAccountsChanged(FString address);
 	void OnChainIdChanged(FString newChainId);
-	void SendEthereumRequest(FString id, /* MetamaskEthereumRequest request, */ bool openTransport);
+	void SendEthereumRequest(FString id, FMetamaskEthereumRequest request, bool openTransport);
 	bool ShouldOpenMM(FString method);
+
+	bool Connected;
+	bool Paused;
+	bool Authorized;
+
+	FDelegateWalletReady DWalletReady;
+	FDelegateWalletPaused DWalletPaused;
+	FDelegateWalletConnected DWalletConnected;
 
 private:
 	FString SocketUrl;

@@ -17,7 +17,7 @@ struct FMetamaskParameters
     FMetamaskParameters(TMap<FString, FString> InProperties) : Properties(InProperties)
     {}
 
-    FString ToJsonString() const
+    TSharedPtr<FJsonObject> ToJsonObject()
     {
         TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
 
@@ -26,10 +26,6 @@ struct FMetamaskParameters
             JsonObject->SetStringField(Property.Key, Property.Value);
         }
 
-        FString JsonString;
-        TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&JsonString);
-        FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
-
-        return JsonString;
+        return JsonObject;
     }
 };
