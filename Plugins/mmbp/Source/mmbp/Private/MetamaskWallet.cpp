@@ -39,18 +39,61 @@ UMetamaskWallet::~UMetamaskWallet()
 
 void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
 {
+    if (Request.Method == "eth_requestAccounts" && !Connected)
+    {
+        // Check if way for us to manage connection_state so this doesn't get called many times to do Socket->ConnectAsync
+        Connect();
+    }
+    else if (!Connected)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Wallet not connected"));
+    }
+    else {
+        FString Id = FGuid::NewGuid().ToString();
+        SendEthereumRequest(Id, Request, ShouldOpenMM(Request.Method));
+    }
 }
 
 void UMetamaskWallet::Connect()
 {
+    UE_LOG(LogTemp, Log, TEXT("Connecting..."));
+    TMap<FString, FString> SocketOptions = {
+        {TEXT("UserAgent"), Transport->UserAgent}
+    };
+    Socket->Initialize(SocketUrl, SocketOptions);
+    Socket->ConnectAsync();
+
+    Session->SessionData.ChannelId = FGuid::NewGuid().ToString();
+    FString ChannelId = Session->SessionData.ChannelId;
+
+    ConnectionUrl = MetamaskAppLinkUrl + TEXT("/connect?channelId=") + FGenericPlatformHttp::UrlEncode(ChannelId) + TEXT("&pubkey=") + FGenericPlatformHttp::UrlEncode(Session->PublicKey());
+
+    if (!Transport->Connect(ConnectionUrl)) {
+        UE_LOG(LogTemp, Log, TEXT("Opening transport for connection failed"));
+    }
 }
 
 void UMetamaskWallet::Disconnect()
 {
+    UE_LOG(LogTemp, Log, TEXT("Disconnected"));
+    Connected = false;
+    Authorized = false;
+    Paused = false;
+    KeysExchanged = false;
+
+    WalletPublicKey = FString();
+    SelectedAddress = FString();
+    SelectedChainId = FString();
+
+    Socket->DisconnectAsync();
+    DWalletDisconnected.ExecuteIfBound();
 }
 
 void UMetamaskWallet::Dispose()
 {
+    LeaveChannel(Session->SessionData.ChannelId);
+    Disconnect();
+    Socket->Dispose();
 }
 
 void UMetamaskWallet::SetMetamaskTransport(UMetamaskTransport* transport)
@@ -276,9 +319,74 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
             else
             {
                 UE_LOG(LogTemp, Log, TEXT("Encrypted message received"));
-                FString DecryptedJson;
+                FString DecryptedJsonString;
+                if(!Session->DecryptMessage(Message, DecryptedJsonString))
+                {
+                    UE_LOG(LogTemp, Log, TEXT("Could not decrypt message, restarting key exchange"));
+                    KeysExchanged = false;
+                    FMetamaskKeyExchangeMessage KeyExchangeSYN{
+                        "key_handshake_SYN",
+                        Session->PublicKey()
+                    };
+                    SendMessage(KeyExchangeSYN.ToJsonObject(), false);
+                    return;
+                }
 
+                UE_LOG(LogTemp, Log, TEXT("%"), &DecryptedJsonString); // FIXME
 
+                TSharedPtr<FJsonObject> DecryptedJsonObject;
+                TSharedRef<TJsonReader<>> DecryptedJsonReader = TJsonReaderFactory<>::Create(DecryptedJsonString);
+
+                if (FJsonSerializer::Deserialize(DecryptedJsonReader, DecryptedJsonObject) && DecryptedJsonObject.IsValid())
+                {
+                    FString DecryptedMessageType;
+                    if (DecryptedJsonObject->TryGetStringField(TEXT("type"), DecryptedMessageType)) {
+                        if (DecryptedMessageType == "pause")
+                        {
+                            OnWalletPaused();
+                            return;
+                        }
+                        else if (DecryptedMessageType == "otp")
+                        {
+                            int32 OtpAnswer;
+                            if (DecryptedJsonObject->TryGetNumberField(TEXT("otpAnswer"), OtpAnswer)) {
+                                OnOtpReceived(OtpAnswer);
+                            }
+                            else {
+                                UE_LOG(LogTemp, Log, TEXT("Could not get parse otp"));
+                                return;
+                            }
+                        }
+                        else if (DecryptedMessageType == "ready")
+                        {
+                            OnWalletReady();
+                            return;
+                        }
+
+                        if (!Connected && DecryptedMessageType == "wallet_info" && Paused == true)
+                        {
+                            OnWalletResume();
+                            return;
+                        }
+
+                        const TSharedPtr<FJsonObject> *DataObject;
+                        if (DecryptedJsonObject->TryGetObjectField(TEXT("data"), DataObject))
+                        {
+                            FString Id;
+                            if (DataObject->Get()->TryGetStringField(TEXT("id"), Id))
+                            {
+                                OnEthereumRequestReceived(Id, DataObject);
+                            }
+                            else {
+                                OnEthereumRequestReceived(DataObject);
+                            }
+                        }
+                        else if (DecryptedJsonObject->TryGetObjectField(TEXT("walletinfo"), DataObject)) {
+                            OnEthereumRequestReceived(DataObject);
+                        }
+                    }
+                }
+                
             }
         }
     }
@@ -286,10 +394,13 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
 
 void UMetamaskWallet::OnOtpReceived(int32 Answer)
 {
+    UE_LOG(LogTemp, Log, TEXT("Displaying OTP Answer: %d"), Answer);
 }
 
 void UMetamaskWallet::OnClientsWaitingToJoin(FString Response)
 {
+    UE_LOG(LogTemp, Log, TEXT("Clients waiting to join"));
+    Transport->OnConnectRequest(ConnectionUrl);
 }
 
 void UMetamaskWallet::OnClientsConnected(FString Response)
@@ -308,8 +419,13 @@ void UMetamaskWallet::OnWalletUnauthorized()
 {
 }
 
-void UMetamaskWallet::OnEthereumRequestReceived(FString Id)
+void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJsonObject> *DataObject)
 {
+}
+
+void UMetamaskWallet::OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* DataObject)
+{
+
 }
 
 void UMetamaskWallet::OnAccountsChanged(FString Address)

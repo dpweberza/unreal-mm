@@ -23,6 +23,10 @@ public:
 
 	void Emit(FString EventName, FString Message);
 	void On(FString EventName, const TFunction<void(FString)>& Callback);
+	void Initialize(FString SocketUrl, TMap<FString, FString> SocketOptions);
+	void ConnectAsync();
+	void DisconnectAsync();
+	void Dispose();
 
 private:
 

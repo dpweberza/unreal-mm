@@ -20,7 +20,9 @@ public:
 
 	FMetamaskSessionData SessionData;
 
-	FString PublicKey() { return ProtectedPublicKey; };
+	FString PublicKey();
+
+	bool DecryptMessage(FString Message, FString DecryptedJsonMessage);
 
 protected:
 	FString ProtectedPublicKey;

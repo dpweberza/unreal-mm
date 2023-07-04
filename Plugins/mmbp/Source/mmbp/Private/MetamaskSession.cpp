@@ -18,7 +18,7 @@ FString UMetamaskSession::PublicKey()
 	return ProtectedPublicKey;
 }
 
-FString UMetamaskSession::DecryptMessage(FString Message)
+bool UMetamaskSession::DecryptMessage(FString Message, FString DecryptedJsonString)
 {
-	return FString();
+	return true;
 }

@@ -4,6 +4,7 @@
 
 #include "CoreMinimal.h"
 #include "Json.h"
+#include "GenericPlatform/GenericPlatformHttp.h"
 #include "MetamaskSession.h"
 #include "MetamaskTransport.h"
 #include "MetamaskSocketWrapper.h"
@@ -19,6 +20,7 @@
 DECLARE_DELEGATE(FDelegateWalletReady);
 DECLARE_DELEGATE(FDelegateWalletPaused);
 DECLARE_DELEGATE(FDelegateWalletConnected);
+DECLARE_DELEGATE(FDelegateWalletDisconnected);
 
 UCLASS()
 class MMBP_API UMetamaskWallet: public UObject
@@ -68,7 +70,8 @@ protected:
 	void OnClientsDisconnected(FString response);
 	void OnWalletAuthorized();
 	void OnWalletUnauthorized();
-	void OnEthereumRequestReceived(FString id);
+	void OnEthereumRequestReceived(FString id, const TSharedPtr<FJsonObject> *DataObject);
+	void OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* DataObject);
 	void OnAccountsChanged(FString address);
 	void OnChainIdChanged(FString newChainId);
 	void SendEthereumRequest(FString id, FMetamaskEthereumRequest request, bool openTransport);
@@ -82,8 +85,8 @@ protected:
 	FDelegateWalletReady DWalletReady;
 	FDelegateWalletPaused DWalletPaused;
 	FDelegateWalletConnected DWalletConnected;
+	FDelegateWalletDisconnected DWalletDisconnected;
 
-private:
 	FString SocketUrl;
 	FString MetamaskAppLinkUrl;
 	FString MessageEventName;
@@ -92,4 +95,5 @@ private:
 	FString ClientsConnectedEventName;
 	FString ClientsDisconnectedEventName;
 	FString ClientsWaitingToJoinEventName;
+	FString ConnectionUrl; 
 };
