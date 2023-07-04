@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MetamaskEthereumRequest.h"
 #include "MetamaskTransport.generated.h"
 
 /**
@@ -19,6 +20,7 @@ public:
 	void OnFailure(FString Error);
 	bool Connect(FString ConnectionUrl);
 	void OnConnectRequest(FString ConnectionUrl);
+	void OnRequest(FString Id, FMetamaskEthereumRequest Request);
 
 	FString UserAgent;
 };

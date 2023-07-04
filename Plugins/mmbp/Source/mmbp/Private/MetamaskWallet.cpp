@@ -512,22 +512,68 @@ void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJs
 
 void UMetamaskWallet::OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* DataObject)
 {
-
+    FString Method;
+    if (DataObject->Get()->TryGetStringField(TEXT("method"), Method))
+    {
+        const TSharedPtr<FJsonObject>* ParamsObject;
+        const TArray<TSharedPtr<FJsonValue>>* ParamsArr;
+        if (Method == "metamask_accountsChanged")
+        {
+            if (DataObject->Get()->TryGetArrayField(TEXT("params"), ParamsArr))
+            {
+                OnAccountsChanged(ParamsArr->GetData()->Get()->AsString());
+            }
+        }
+        else if (Method == "metamask_chainChanged")
+        {
+            if (DataObject->Get()->TryGetObjectField(TEXT("params"), ParamsObject))
+            {
+                FString ChainId;
+                if (ParamsObject->Get()->TryGetStringField(TEXT("chainId"), ChainId))
+                {
+                    OnChainIdChanged(ChainId);
+                }
+            }
+        }
+    }
 }
 
 void UMetamaskWallet::OnAccountsChanged(FString Address)
 {
+    UE_LOG(LogTemp, Log, TEXT("Account changed"));
+    SelectedAddress = Address;
+    DAccountChanged.ExecuteIfBound();
+    if (Paused)
+    {
+        OnWalletReady();
+    }
 }
 
 void UMetamaskWallet::OnChainIdChanged(FString NewChainId)
 {
+    UE_LOG(LogTemp, Log, TEXT("Chain Id changed"));
+    SelectedChainId = NewChainId;
+    DChainIdChanged.ExecuteIfBound();
 }
 
 void UMetamaskWallet::SendEthereumRequest(FString Id, FMetamaskEthereumRequest Request, bool OpenTransport)
 {
+    Request.Id = Id;
+    UE_LOG(LogTemp, Log, TEXT("Sending a new request"));
+
+    SendMessage(Request.ToJsonObject(), true);
+
+    if (OpenTransport)
+    {
+        Transport->OnRequest(Id, Request);
+    }
 }
 
 bool UMetamaskWallet::ShouldOpenMM(FString Method)
 {
+    if (Method == "eth_requestAccounts" && SelectedAddress.IsEmpty())
+    {
+        return true;
+    }
     return false;
 }

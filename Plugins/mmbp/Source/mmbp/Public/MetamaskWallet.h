@@ -26,6 +26,8 @@ DECLARE_DELEGATE(FDelegateWalletAuthorized);
 DECLARE_DELEGATE(FDelegateWalletUnauthorized);
 DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestFailed, FMetamaskEthereumResponse);
 DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestResult, FMetamaskEthereumResponse);
+DECLARE_DELEGATE(FDelegateAccountChanged);
+DECLARE_DELEGATE(FDelegateChainIdChanged);
 
 
 UCLASS()
@@ -97,6 +99,8 @@ protected:
 	FDelegateWalletUnauthorized DWalletUnauthorized;
 	FDelegateEthereumRequestFailed DEthereumRequestFailed;
 	FDelegateEthereumRequestResult DEthereumRequestResult;
+	FDelegateAccountChanged DAccountChanged;
+	FDelegateChainIdChanged DChainIdChanged;
 
 	FString SocketUrl;
 	FString MetamaskAppLinkUrl;

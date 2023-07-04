@@ -23,3 +23,6 @@ void UMetamaskTransport::OnFailure(FString Error)
 
 void UMetamaskTransport::OnConnectRequest(FString ConnectionUrl)
 {}
+
+void UMetamaskTransport::OnRequest(FString Id, FMetamaskEthereumRequest Request)
+{}
