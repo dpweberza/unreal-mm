@@ -1,6 +1,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "MetamaskSessionData.h"
 #include "MetamaskSession.generated.h"
 
 /**
@@ -16,4 +17,11 @@ public:
 	~UMetamaskSession();
 
 	FString PrepareMessage(TSharedPtr<FJsonObject> Data, bool Encrypt, FString WalletPublicKey);
+
+	FMetamaskSessionData SessionData;
+
+	FString PublicKey() { return ProtectedPublicKey; };
+
+protected:
+	FString ProtectedPublicKey;
 };

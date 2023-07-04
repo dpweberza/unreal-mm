@@ -22,4 +22,8 @@ public:
 	FDelegateSocketDisconnected DSocketDisconnected;
 
 	void Emit(FString EventName, FString Message);
+	void On(FString EventName, const TFunction<void(FString)>& Callback);
+
+private:
+
 };

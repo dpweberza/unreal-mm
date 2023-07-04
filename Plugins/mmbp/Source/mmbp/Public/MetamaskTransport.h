@@ -14,4 +14,6 @@ class MMBP_API UMetamaskTransport : public UObject
 public:
 	UMetamaskTransport();
 	~UMetamaskTransport();
+
+	void OnSuccess();
 };

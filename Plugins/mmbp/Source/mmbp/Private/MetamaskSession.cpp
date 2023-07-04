@@ -12,3 +12,13 @@ FString UMetamaskSession::PrepareMessage(TSharedPtr<FJsonObject> Data, bool Encr
 {
 	return FString();
 }
+
+FString UMetamaskSession::PublicKey()
+{
+	return ProtectedPublicKey;
+}
+
+FString UMetamaskSession::DecryptMessage(FString Message)
+{
+	return FString();
+}

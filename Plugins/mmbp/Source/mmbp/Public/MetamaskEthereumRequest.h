@@ -32,6 +32,12 @@ struct FMetamaskEthereumRequest
 	{
 	}
 
+    FMetamaskEthereumRequest(const FString& InMethod, FMetamaskParameters InParameters)
+        : Method(InMethod)
+        , Parameters(InParameters)
+    {
+}
+
     TSharedPtr<FJsonObject> ToJsonObject() const
     {
         TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();

@@ -9,6 +9,7 @@
 #include "MetamaskSocketWrapper.h"
 #include "MetamaskParameters.h"
 #include "MetamaskEthereumRequest.h"
+#include "MetamaskKeyExchangeMessage.h"
 #include "MetamaskWallet.generated.h"
 
 /**
@@ -29,7 +30,7 @@ public:
 	UMetamaskWallet(UMetamaskSession* session, UMetamaskTransport* transport, UMetamaskSocketWrapper* socket, FString socketUrl);
 	~UMetamaskWallet();
 
-	void Request(/* MetamaskEthereumRequest request, */);
+	void Request(FMetamaskEthereumRequest Request);
 	void Connect();
 	void Disconnect();
 	void Dispose();
@@ -76,6 +77,7 @@ protected:
 	bool Connected;
 	bool Paused;
 	bool Authorized;
+	bool KeysExchanged;
 
 	FDelegateWalletReady DWalletReady;
 	FDelegateWalletPaused DWalletPaused;
