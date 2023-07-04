@@ -16,6 +16,7 @@ public:
 	~UMetamaskTransport();
 
 	void OnSuccess();
+	void OnFailure(FString Error);
 	bool Connect(FString ConnectionUrl);
 	void OnConnectRequest(FString ConnectionUrl);
 

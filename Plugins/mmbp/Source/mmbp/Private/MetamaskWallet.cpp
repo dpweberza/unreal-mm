@@ -50,6 +50,7 @@ void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
     }
     else {
         FString Id = FGuid::NewGuid().ToString();
+        SubmittedRequests.Add(Id, Request);
         SendEthereumRequest(Id, Request, ShouldOpenMM(Request.Method));
     }
 }
@@ -80,6 +81,8 @@ void UMetamaskWallet::Disconnect()
     Authorized = false;
     Paused = false;
     KeysExchanged = false;
+
+    SubmittedRequests.Empty();
 
     WalletPublicKey = FString();
     SelectedAddress = FString();
@@ -152,6 +155,7 @@ void UMetamaskWallet::OnWalletResume()
         }
     };
 
+    SubmittedRequests.Add(Id, Request);
     SendEthereumRequest(Id, Request, false);
 
     Connected = true;
@@ -176,6 +180,7 @@ void UMetamaskWallet::OnWalletReady()
         }
     };
 
+    SubmittedRequests.Add(Id, Request);
     SendEthereumRequest(Id, Request, false);
 
     Connected = true;
@@ -405,22 +410,104 @@ void UMetamaskWallet::OnClientsWaitingToJoin(FString Response)
 
 void UMetamaskWallet::OnClientsConnected(FString Response)
 {
+    UE_LOG(LogTemp, Log, TEXT("Clients connected"));
+    
+    if (!KeysExchanged)
+    {
+        UE_LOG(LogTemp, Log, TEXT("Exchanging keys"));
+        FMetamaskKeyExchangeMessage KeyExchangeSYN{
+            "key_handshake_SYN",
+            Session->PublicKey()
+        };
+        SendMessage(KeyExchangeSYN.ToJsonObject(), false);
+    }
 }
 
 void UMetamaskWallet::OnClientsDisconnected(FString Response)
 {
+    UE_LOG(LogTemp, Log, TEXT("Clients disconnected"));
+    if (!Paused)
+    {
+        Connected = false;
+        KeysExchanged = false;
+        Disconnect();
+    }
 }
 
 void UMetamaskWallet::OnWalletAuthorized()
 {
+    if (!Authorized)
+    {
+        Authorized = true;
+        DWalletAuthorized.ExecuteIfBound();
+    }
 }
 
 void UMetamaskWallet::OnWalletUnauthorized()
 {
+    Authorized = false;
+    DWalletUnauthorized.ExecuteIfBound();
+    Disconnect();
 }
 
 void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJsonObject> *DataObject)
 {
+    FMetamaskEthereumRequest *Request = SubmittedRequests.Find(Id);
+
+    if (Request != nullptr)
+    {
+        FString Error;
+        FString Result;
+        const TArray<TSharedPtr<FJsonValue>> *ResultArr;
+        const TSharedPtr<FJsonObject>* ResultObject;
+
+        if (DataObject->Get()->TryGetStringField("error", Error))
+        {
+            if (Request->Method == "eth_requestAccounts")
+            {
+                OnWalletUnauthorized();
+            }
+
+            Transport->OnFailure(Error);
+            FMetamaskEthereumResponse Response;
+            Response.Request = Request;
+            Response.Result = DataObject;
+            DEthereumRequestFailed.ExecuteIfBound(Response);
+        }
+        else {
+            if (DataObject->Get()->TryGetStringField("result", Result) && Request->Method == "eth_chainId")
+            {
+                OnChainIdChanged(Result);
+            }
+            else if (DataObject->Get()->TryGetArrayField("result", ResultArr) && Request->Method == "eth_requestAccounts")
+            {
+                OnWalletAuthorized();
+                OnAccountsChanged(ResultArr->GetData()->Get()->AsString());
+            }
+            else if (DataObject->Get()->TryGetObjectField("result", ResultObject) && Request->Method == "metamask_getProviderState")
+            {
+                FString ChainId;
+                const TArray<TSharedPtr<FJsonValue>>* Accounts;
+
+                if (ResultObject->Get()->TryGetStringField(TEXT("chainId"), ChainId))
+                {
+                    OnChainIdChanged(ChainId);
+                }
+
+                if (ResultObject->Get()->TryGetArrayField(TEXT("accounts"), Accounts))
+                {
+                    OnAccountsChanged(Accounts->GetData()->Get()->AsString());
+                }
+            }
+            FMetamaskEthereumResponse Response;
+            Response.Request = Request;
+            Response.Result = DataObject;
+            DEthereumRequestResult.ExecuteIfBound(Response);
+        }
+    }
+    else {
+        UE_LOG(LogTemp, Log, TEXT("Could not find request associated with id: %s"), &Id);
+    }
 }
 
 void UMetamaskWallet::OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* DataObject)

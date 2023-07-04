@@ -21,20 +21,20 @@ struct FMetamaskEthereumRequest
 		FString Method;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
-		FMetamaskParameters Parameters; // Use the appropriate Unreal Engine type for the 'params' property
+		FMetamaskParameters Params; // Use the appropriate Unreal Engine type for the 'params' property
 
 	FMetamaskEthereumRequest() = default;
 
 	FMetamaskEthereumRequest(const FString& InId, const FString& InMethod, FMetamaskParameters InParameters)
 		: Id(InId)
 		, Method(InMethod)
-		, Parameters(InParameters)
+		, Params(InParameters)
 	{
 	}
 
     FMetamaskEthereumRequest(const FString& InMethod, FMetamaskParameters InParameters)
         : Method(InMethod)
-        , Parameters(InParameters)
+        , Params(InParameters)
     {
 }
 
@@ -43,6 +43,7 @@ struct FMetamaskEthereumRequest
         TSharedPtr<FJsonObject> JsonObject = MakeShared<FJsonObject>();
         JsonObject->SetStringField("id", Id);
         JsonObject->SetStringField("method", Method);
+        JsonObject->SetObjectField("params", Params.ToJsonObject());
         return JsonObject;
     }
 
@@ -50,8 +51,13 @@ struct FMetamaskEthereumRequest
     {
         if (JsonObject.IsValid())
         {
+            const TSharedPtr<FJsonObject> *Properties;
             JsonObject->TryGetStringField("id", Id);
             JsonObject->TryGetStringField("method", Method);
+            JsonObject->TryGetObjectField("params", Properties);
+
+            Params.FromJsonObject(Properties);
+
             return true;
         }
         return false;

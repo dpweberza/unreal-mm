@@ -17,5 +17,9 @@ void UMetamaskTransport::OnSuccess()
 {
 }
 
+void UMetamaskTransport::OnFailure(FString Error)
+{
+}
+
 void UMetamaskTransport::OnConnectRequest(FString ConnectionUrl)
 {}

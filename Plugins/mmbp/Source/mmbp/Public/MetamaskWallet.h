@@ -10,6 +10,7 @@
 #include "MetamaskSocketWrapper.h"
 #include "MetamaskParameters.h"
 #include "MetamaskEthereumRequest.h"
+#include "MetamaskEthereumResponse.h"
 #include "MetamaskKeyExchangeMessage.h"
 #include "MetamaskWallet.generated.h"
 
@@ -21,6 +22,11 @@ DECLARE_DELEGATE(FDelegateWalletReady);
 DECLARE_DELEGATE(FDelegateWalletPaused);
 DECLARE_DELEGATE(FDelegateWalletConnected);
 DECLARE_DELEGATE(FDelegateWalletDisconnected);
+DECLARE_DELEGATE(FDelegateWalletAuthorized);
+DECLARE_DELEGATE(FDelegateWalletUnauthorized);
+DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestFailed, FMetamaskEthereumResponse);
+DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestResult, FMetamaskEthereumResponse);
+
 
 UCLASS()
 class MMBP_API UMetamaskWallet: public UObject
@@ -82,10 +88,15 @@ protected:
 	bool Authorized;
 	bool KeysExchanged;
 
+	/* Delegates */
 	FDelegateWalletReady DWalletReady;
 	FDelegateWalletPaused DWalletPaused;
 	FDelegateWalletConnected DWalletConnected;
 	FDelegateWalletDisconnected DWalletDisconnected;
+	FDelegateWalletAuthorized DWalletAuthorized;
+	FDelegateWalletUnauthorized DWalletUnauthorized;
+	FDelegateEthereumRequestFailed DEthereumRequestFailed;
+	FDelegateEthereumRequestResult DEthereumRequestResult;
 
 	FString SocketUrl;
 	FString MetamaskAppLinkUrl;
@@ -96,4 +107,6 @@ protected:
 	FString ClientsDisconnectedEventName;
 	FString ClientsWaitingToJoinEventName;
 	FString ConnectionUrl; 
+
+	TMap<FString, FMetamaskEthereumRequest> SubmittedRequests;
 };
