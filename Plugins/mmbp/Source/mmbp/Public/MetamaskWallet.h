@@ -12,7 +12,8 @@
 #include "MetamaskEthereumRequest.h"
 #include "MetamaskEthereumResponse.h"
 #include "MetamaskKeyExchangeMessage.h"
-
+#include "MetamaskHelper.h"
+#include "MetamaskWallet.generated.h"
 /**
  * 
  */
@@ -28,16 +29,18 @@
 //DECLARE_DELEGATE(FDelegateAccountChanged);
 //DECLARE_DELEGATE(FDelegateChainIdChanged);
 
-class MMBP_API UMetamaskWallet
+UCLASS()
+class MMBP_API UMetamaskWallet: public UObject
 {
+	GENERATED_BODY()
 
 public:
-	UMetamaskWallet() = default;
-	UMetamaskWallet(UMetamaskSession* session, UMetamaskTransport* transport, UMetamaskSocketWrapper* socket, FString socketUrl);
+	UMetamaskWallet();
 	~UMetamaskWallet();
 
+	void Initialize(UMetamaskSession* session, UMetamaskTransport* transport, UMetamaskSocketWrapper* socket, FString socketUrl);
 	void Request(FMetamaskEthereumRequest Request);
-	void Connect();
+	FString Connect();
 	void Disconnect();
 	void Dispose();
 
@@ -67,11 +70,11 @@ protected:
 	void onSocketDisconnected();
 	void JoinChannel(FString channelId);
 	void LeaveChannel(FString channelId);
-	void OnMessageReceived(FString response);
+	void OnMessageReceived(FString response, TSharedPtr<FJsonValue> JsonValue);
 	void OnOtpReceived(int32 answer);
-	void OnClientsWaitingToJoin(FString response);
-	void OnClientsConnected(FString response);
-	void OnClientsDisconnected(FString response);
+	void OnClientsWaitingToJoin(FString response, TSharedPtr<FJsonValue> JsonValue);
+	void OnClientsConnected(FString response, TSharedPtr<FJsonValue> JsonValue);
+	void OnClientsDisconnected(FString response, TSharedPtr<FJsonValue> JsonValue);
 	void OnWalletAuthorized();
 	void OnWalletUnauthorized();
 	void OnEthereumRequestReceived(FString id, const TSharedPtr<FJsonObject> *DataObject);

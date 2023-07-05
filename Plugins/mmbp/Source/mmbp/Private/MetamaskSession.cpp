@@ -4,12 +4,16 @@
 
 UMetamaskSession::UMetamaskSession(): Ecies(UECIES::GetInstance())
 {
+	ProtectedPublicKey = Ecies.GetPublicKeyAsString();
+	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), &ProtectedPublicKey);
 }
 
 UMetamaskSession::UMetamaskSession(UECIES& InEcies, FMetamaskSessionData InSessionData) :
 	Ecies(InEcies),
 	SessionData(InSessionData)
 {
+	ProtectedPublicKey = Ecies.GetPublicKeyAsString();
+	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), &ProtectedPublicKey);
 }
 
 UMetamaskSession::~UMetamaskSession()

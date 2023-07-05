@@ -38,5 +38,5 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 		static UTexture2D* GenerateQrCode(FString TextToConvert	);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Initialize Wallet", Keywords = "MetaMask"), Category = "MetaMask")
-		static void InitializeWallet();
+		static FString InitializeWallet();
 };

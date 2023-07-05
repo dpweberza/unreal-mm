@@ -28,4 +28,5 @@ public:
 private:
 	TSharedPtr<FSocketIONative> Socket;
 	void OnConnected(const FString& SessionId);
+	void OnDisconnected();
 };

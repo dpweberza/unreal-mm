@@ -16,12 +16,13 @@ TArray<FString> UMetamaskWallet::MethodsToRedirect = {
         "wallet_switchEthereumChain"
 };
 
-UMetamaskWallet::UMetamaskWallet(UMetamaskSession* session, UMetamaskTransport* transport, UMetamaskSocketWrapper* socket, FString socketUrl):
-    Session(session),
-    Transport(transport),
-    Socket(socket),
-    SocketUrl(socketUrl)
+void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskTransport* InTransport, UMetamaskSocketWrapper* InSocket, FString InSocketUrl)
 {
+    Session = InSession;
+    Transport = InTransport;
+    Socket = InSocket;
+    SocketUrl = InSocketUrl;
+
     // Setting up callbacks
     Socket->OnConnectedCallback = [this]() {
         OnSocketConnected();
@@ -39,8 +40,13 @@ UMetamaskWallet::UMetamaskWallet(UMetamaskSession* session, UMetamaskTransport* 
     ClientsWaitingToJoinEventName = "clients_waiting_to_join";
 }
 
+UMetamaskWallet::UMetamaskWallet()
+{
+}
+
 UMetamaskWallet::~UMetamaskWallet()
 {
+    Dispose();
 }
 
 void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
@@ -55,13 +61,13 @@ void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
         UE_LOG(LogTemp, Log, TEXT("Wallet not connected"));
     }
     else {
-        FString Id = FGuid::NewGuid().ToString();
+        FString Id = UMetamaskHelper::GenerateUUID();
         SubmittedRequests.Add(Id, Request);
         SendEthereumRequest(Id, Request, ShouldOpenMM(Request.Method));
     }
 }
 
-void UMetamaskWallet::Connect()
+FString UMetamaskWallet::Connect()
 {
     UE_LOG(LogTemp, Log, TEXT("Connecting..."));
     TMap<FString, FString> SocketOptions = {
@@ -70,7 +76,7 @@ void UMetamaskWallet::Connect()
     Socket->Initialize(SocketUrl, SocketOptions);
     Socket->ConnectAsync();
 
-    Session->SessionData.ChannelId = FGuid::NewGuid().ToString();
+    Session->SessionData.ChannelId = UMetamaskHelper::GenerateUUID(); // ChannelId must be UUIDv4
     FString ChannelId = Session->SessionData.ChannelId;
 
     ConnectionUrl = MetamaskAppLinkUrl + TEXT("/connect?channelId=") + FGenericPlatformHttp::UrlEncode(ChannelId) + TEXT("&pubkey=") + FGenericPlatformHttp::UrlEncode(Session->PublicKey());
@@ -78,6 +84,8 @@ void UMetamaskWallet::Connect()
     if (!Transport->Connect(ConnectionUrl)) {
         UE_LOG(LogTemp, Log, TEXT("Opening transport for connection failed"));
     }
+
+    return ConnectionUrl;
 }
 
 void UMetamaskWallet::Disconnect()
@@ -152,7 +160,7 @@ void UMetamaskWallet::OnWalletResume()
 
     InitializeState();
 
-    FString Id = FGuid::NewGuid().ToString();
+    FString Id = UMetamaskHelper::GenerateUUID();
 
     FMetamaskEthereumRequest Request{
         /*.Id =*/ Id,
@@ -177,7 +185,7 @@ void UMetamaskWallet::OnWalletReady()
 
     InitializeState();
 
-    FString Id = FGuid::NewGuid().ToString();
+    FString Id = UMetamaskHelper::GenerateUUID();
 
     FMetamaskEthereumRequest Request{
         /*.Id =*/ Id,
@@ -212,27 +220,27 @@ void UMetamaskWallet::OnSocketConnected()
 {
     FString ChannelId = Session->SessionData.ChannelId;
     UE_LOG(LogTemp, Log, TEXT("Socket Connected"));
-    UE_LOG(LogTemp, Log, TEXT("Channel ID: %s"), &ChannelId);
+    UE_LOG(LogTemp, Log, TEXT("Channel ID: %s"), *ChannelId);
     
-    Socket->On(MessageEventName, [this](FString response, TSharedPtr<FJsonValue> JsonValue)
+    Socket->On(MessageEventName, [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
     {
-        OnMessageReceived(response);
+        OnMessageReceived(Response, JsonValue);
     });
-    Socket->On(FString::Printf(TEXT("%s-%s"), &MessageEventName, &ChannelId), [this](FString response, TSharedPtr<FJsonValue> JsonValue)
+    Socket->On(FString::Printf(TEXT("%s-%s"), *MessageEventName, *ChannelId), [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
         {
-            OnMessageReceived(response);
+            OnMessageReceived(Response, JsonValue);
         });
-    Socket->On(FString::Printf(TEXT("%s-%s"), &ClientsConnectedEventName, &ChannelId), [this](FString response, TSharedPtr<FJsonValue> JsonValue)
+    Socket->On(FString::Printf(TEXT("%s-%s"), *ClientsConnectedEventName, *ChannelId), [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
         {
-            OnClientsConnected(response);
+            OnClientsConnected(Response, JsonValue);
         });
-    Socket->On(FString::Printf(TEXT("%s-%s"), &ClientsDisconnectedEventName, &ChannelId), [this](FString response, TSharedPtr<FJsonValue> JsonValue)
+    Socket->On(FString::Printf(TEXT("%s-%s"), *ClientsDisconnectedEventName, *ChannelId), [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
         {
-            OnClientsDisconnected(response);
+            OnClientsDisconnected(Response, JsonValue);
         });
-    Socket->On(FString::Printf(TEXT("%s-%s"), &ClientsWaitingToJoinEventName, &ChannelId), [this](FString response, TSharedPtr<FJsonValue> JsonValue)
+    Socket->On(FString::Printf(TEXT("%s-%s"), *ClientsWaitingToJoinEventName, *ChannelId), [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
         {
-            OnClientsWaitingToJoin(response);
+            OnClientsWaitingToJoin(Response, JsonValue);
         });
 
 
@@ -245,52 +253,52 @@ void UMetamaskWallet::onSocketDisconnected()
 
 void UMetamaskWallet::JoinChannel(FString ChannelId)
 {
-    UE_LOG(LogTemp, Log, TEXT("Joining channel: %s"), &ChannelId);
+    UE_LOG(LogTemp, Log, TEXT("Joining channel: %s"), *ChannelId);
     Socket->Emit(JoinChannelEventName, ChannelId);
 }
 
 void UMetamaskWallet::LeaveChannel(FString ChannelId)
 {
-    UE_LOG(LogTemp, Log, TEXT("Leaving channel: %s"), &ChannelId);
+    UE_LOG(LogTemp, Log, TEXT("Leaving channel: %s"), *ChannelId);
     Socket->Emit(LeaveChannelEventName, ChannelId);
 }
 
-void UMetamaskWallet::OnMessageReceived(FString Response)
+void UMetamaskWallet::OnMessageReceived(FString Response, TSharedPtr<FJsonValue> JsonValue)
 {
     UE_LOG(LogTemp, Log, TEXT("Message received"));
-    UE_LOG(LogTemp, Log, TEXT("%s"), &Response);
+    UE_LOG(LogTemp, Log, TEXT("%s"), *Response);
 
-    TSharedPtr<FJsonObject> JsonObject;
-    TSharedRef<TJsonReader<>> JsonReader = TJsonReaderFactory<>::Create(Response);
+    // Serialize JsonValue to see what it is
 
-    if (FJsonSerializer::Deserialize(JsonReader, JsonObject) && JsonObject.IsValid())
+
+    if (JsonValue.IsValid())
     {
-        if (JsonObject->Values.Num() > 0)
-        {
-            for (const auto& Pair : JsonObject->Values)
+        UE_LOG(LogTemp, Log, TEXT("JsonValue valid json"));
+        if (JsonValue->Type == EJson::Array) {
+            UE_LOG(LogTemp, Log, TEXT("JsonValue is array"));
+            TArray<TSharedPtr<FJsonValue>> ArrayValue = JsonValue->AsArray();
+
+            if (ArrayValue.Num() > 0)
             {
-                TSharedPtr<FJsonValue> JsonValue = Pair.Value;
-                FString Key = Pair.Key;
-
-                if (JsonValue->Type == EJson::Array && Key == "0")
-                {
-                    TArray<TSharedPtr<FJsonValue>> JsonArray = JsonValue->AsArray();
-
-                    if (JsonArray.Num() > 0)
-                    {
-                        if (JsonArray[0]->Type == EJson::Object)
-                        {
-                            JsonObject = JsonArray[0]->AsObject();
-                        }
-                    }
-                    break;
-                }
+                UE_LOG(LogTemp, Log, TEXT("Using first element of json array"));
+                JsonValue = ArrayValue[0];
             }
+        }
 
+        if (JsonValue->Type == EJson::Object)
+        {
+            UE_LOG(LogTemp, Log, TEXT("JsonValue is object"));
+            TSharedPtr<FJsonObject> JsonObject = JsonValue->AsObject();
             FString MessageType;
             FString Message;
-            const TSharedPtr<FJsonObject> *MessageObject;
+            const TSharedPtr<FJsonObject>* MessageObject;
             // Try to see if Message is JsonObject
+            FString JsonString;
+            TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
+            FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
+
+            UE_LOG(LogTemp, Log, TEXT("Object is %s"), *JsonString);
+
             if (JsonObject->TryGetObjectField(TEXT("message"), MessageObject)) {
                 if (JsonObject->TryGetStringField(TEXT("messageType"), MessageType))
                 {
@@ -298,7 +306,11 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
                 }
             }
             else if (JsonObject->TryGetStringField(TEXT("message"), Message))
-            {}
+            {
+            }
+
+            UE_LOG(LogTemp, Log, TEXT("Message is %s"), *Message);
+            UE_LOG(LogTemp, Log, TEXT("MessageType is %s"), *MessageType);
 
             if (MessageType == "key_handshake_start")
             {
@@ -316,7 +328,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
                 {
                     UE_LOG(LogTemp, Log, TEXT("Wallet public key"));
                     if (MessageObject->Get()->TryGetStringField("pubkey", WalletPublicKey)) {
-                        UE_LOG(LogTemp, Log, TEXT("%s"), &WalletPublicKey);
+                        UE_LOG(LogTemp, Log, TEXT("%s"), *WalletPublicKey);
                         FMetamaskKeyExchangeMessage KeyExchangeACK{
                             "key_handshake_ACK",
                             Session->PublicKey()
@@ -332,7 +344,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
             {
                 UE_LOG(LogTemp, Log, TEXT("Encrypted message received"));
                 FString DecryptedJsonString;
-                if(!Session->DecryptMessage(Message, DecryptedJsonString))
+                if (!Session->DecryptMessage(Message, DecryptedJsonString))
                 {
                     UE_LOG(LogTemp, Log, TEXT("Could not decrypt message, restarting key exchange"));
                     KeysExchanged = false;
@@ -344,7 +356,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
                     return;
                 }
 
-                UE_LOG(LogTemp, Log, TEXT("%"), &DecryptedJsonString); // FIXME
+                UE_LOG(LogTemp, Log, TEXT("%"), *DecryptedJsonString); // FIXME
 
                 TSharedPtr<FJsonObject> DecryptedJsonObject;
                 TSharedRef<TJsonReader<>> DecryptedJsonReader = TJsonReaderFactory<>::Create(DecryptedJsonString);
@@ -381,7 +393,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
                             return;
                         }
 
-                        const TSharedPtr<FJsonObject> *DataObject;
+                        const TSharedPtr<FJsonObject>* DataObject;
                         if (DecryptedJsonObject->TryGetObjectField(TEXT("data"), DataObject))
                         {
                             FString Id;
@@ -398,7 +410,6 @@ void UMetamaskWallet::OnMessageReceived(FString Response)
                         }
                     }
                 }
-                
             }
         }
     }
@@ -409,13 +420,13 @@ void UMetamaskWallet::OnOtpReceived(int32 Answer)
     UE_LOG(LogTemp, Log, TEXT("Displaying OTP Answer: %d"), Answer);
 }
 
-void UMetamaskWallet::OnClientsWaitingToJoin(FString Response)
+void UMetamaskWallet::OnClientsWaitingToJoin(FString Response, TSharedPtr<FJsonValue> JsonValue)
 {
     UE_LOG(LogTemp, Log, TEXT("Clients waiting to join"));
     Transport->OnConnectRequest(ConnectionUrl);
 }
 
-void UMetamaskWallet::OnClientsConnected(FString Response)
+void UMetamaskWallet::OnClientsConnected(FString Response, TSharedPtr<FJsonValue> JsonValue)
 {
     UE_LOG(LogTemp, Log, TEXT("Clients connected"));
     
@@ -430,7 +441,7 @@ void UMetamaskWallet::OnClientsConnected(FString Response)
     }
 }
 
-void UMetamaskWallet::OnClientsDisconnected(FString Response)
+void UMetamaskWallet::OnClientsDisconnected(FString Response, TSharedPtr<FJsonValue> JsonValue)
 {
     UE_LOG(LogTemp, Log, TEXT("Clients disconnected"));
     if (!Paused)
@@ -513,7 +524,7 @@ void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJs
         }
     }
     else {
-        UE_LOG(LogTemp, Log, TEXT("Could not find request associated with id: %s"), &Id);
+        UE_LOG(LogTemp, Log, TEXT("Could not find request associated with id: %s"), *Id);
     }
 }
 

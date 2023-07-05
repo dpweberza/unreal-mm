@@ -51,13 +51,17 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 	return texture;
 }
 
-void UmmbpBPLibrary::InitializeWallet()
+FString UmmbpBPLibrary::InitializeWallet()
 {
 	UMetamaskSession* Session = new UMetamaskSession();
 	UMetamaskTransport* Transport = new UMetamaskTransport();
 	UMetamaskSocketWrapper* Socket = new UMetamaskSocketWrapper();
-	FString SocketUrl = TEXT("http://localhost:3000");
-	UMetamaskWallet* Wallet = new UMetamaskWallet(Session, Transport, Socket, SocketUrl);
+	FString SocketUrl = TEXT("https://metamask-sdk-socket.metafi.codefi.network");
+	//FString SocketUrl = TEXT("http://localhost:3000");
+	UMetamaskWallet* Wallet = NewObject<UMetamaskWallet>();
+	Wallet->Initialize(Session, Transport, Socket, SocketUrl);
 	UE_LOG(LogTemp, Log, TEXT("Initialised Wallet"));
-	Wallet->Connect();
+	FString ConnectionUrl = Wallet->Connect();
+
+	return ConnectionUrl;
 }
