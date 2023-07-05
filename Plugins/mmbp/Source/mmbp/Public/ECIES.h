@@ -16,18 +16,22 @@
 #include "CryptoPP/include/hex.h"
 #include "CryptoPP/include/base64.h"
 #include "CryptoPP/include/filters.h"
-#include "ECIES.generated.h"
 
 /**
  * 
  */
-UCLASS()
-class MMBP_API UECIES: public UObject
+class MMBP_API UECIES
 {
-	GENERATED_BODY()
 
 public:
-	UECIES();
+	static UECIES& GetInstance()
+	{
+		static UECIES Instance;
+		return Instance;
+	}
+
+	UECIES(const UECIES&) = delete;
+	UECIES& operator=(const UECIES&) = delete;
 	FString Encrypt(FString PlainText);
 	FString Decrypt(FString CipherText);
 
@@ -36,6 +40,8 @@ public:
 	FString GetPublicKeyAsString();
 
 private:
+	UECIES();
+	~UECIES();
 	CryptoPP::ECIES<CryptoPP::ECP>::PrivateKey PrivateKey;
 	CryptoPP::ECIES<CryptoPP::ECP>::PublicKey PublicKey;
 	bool DecodeBase64Key(const FString& Base64Key, TArray<uint8>& OutKeyData);

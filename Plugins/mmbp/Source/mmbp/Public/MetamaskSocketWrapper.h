@@ -1,33 +1,31 @@
 #pragma once
 
 #include "CoreMinimal.h"
-#include "MetamaskSocketWrapper.generated.h"
+#include "SocketIONative.h"
+#include "SocketIOClient.h"
 
 /**
  *
  */
-DECLARE_DELEGATE(FDelegateSocketConnected);
-DECLARE_DELEGATE(FDelegateSocketDisconnected);
 
-UCLASS()
-class MMBP_API UMetamaskSocketWrapper : public UObject
+class MMBP_API UMetamaskSocketWrapper
 {
-	GENERATED_BODY()
 
 public:
 	UMetamaskSocketWrapper();
 	~UMetamaskSocketWrapper();
 
-	FDelegateSocketConnected DSocketConnected;
-	FDelegateSocketDisconnected DSocketDisconnected;
+	TFunction<void()> OnConnectedCallback;
+	TFunction<void()> OnDisconnectedCallback;
 
 	void Emit(FString EventName, FString Message);
-	void On(FString EventName, const TFunction<void(FString)>& Callback);
+	void On(FString EventName, const TFunction<void(const FString&, const TSharedPtr<FJsonValue>&)>& Callback);
 	void Initialize(FString SocketUrl, TMap<FString, FString> SocketOptions);
 	void ConnectAsync();
 	void DisconnectAsync();
 	void Dispose();
 
 private:
-
+	TSharedPtr<FSocketIONative> Socket;
+	void OnConnected(const FString& SessionId);
 };

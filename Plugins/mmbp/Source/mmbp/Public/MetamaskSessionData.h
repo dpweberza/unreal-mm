@@ -19,7 +19,10 @@ struct FMetamaskSessionData
 	UPROPERTY(EditAnywhere, BlueprintReadWrite)
 		FString ChannelId;
 
-	FMetamaskSessionData()
+	FMetamaskSessionData() = default;
+	FMetamaskSessionData(FString InAppName, FString InAppUrl):
+		AppName(InAppName),
+		AppUrl(InAppUrl)
 	{
 		ChannelId = FGuid::NewGuid().ToString();
 	}

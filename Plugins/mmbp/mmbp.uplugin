@@ -18,7 +18,13 @@
 		{
 			"Name": "mmbp",
 			"Type": "Runtime",
-			"LoadingPhase": "PreLoadingScreen"
+			"LoadingPhase": "Default"
 		}
+	],
+	"Plugins": [
+		{
+			"Name": "SocketIOClient",
+			"Enabled": true
+		} 
 	]
 }

@@ -25,6 +25,9 @@ UECIES::UECIES()
     this->PublicKey = publicKey;
 }
 
+UECIES::~UECIES()
+{}
+
 FString UECIES::Encrypt(FString Plaintext)
 {
     // Convert the FString to a std::string

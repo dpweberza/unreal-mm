@@ -12,28 +12,24 @@
 #include "MetamaskEthereumRequest.h"
 #include "MetamaskEthereumResponse.h"
 #include "MetamaskKeyExchangeMessage.h"
-#include "MetamaskWallet.generated.h"
 
 /**
  * 
  */
 
-DECLARE_DELEGATE(FDelegateWalletReady);
-DECLARE_DELEGATE(FDelegateWalletPaused);
-DECLARE_DELEGATE(FDelegateWalletConnected);
-DECLARE_DELEGATE(FDelegateWalletDisconnected);
-DECLARE_DELEGATE(FDelegateWalletAuthorized);
-DECLARE_DELEGATE(FDelegateWalletUnauthorized);
-DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestFailed, FMetamaskEthereumResponse);
-DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestResult, FMetamaskEthereumResponse);
-DECLARE_DELEGATE(FDelegateAccountChanged);
-DECLARE_DELEGATE(FDelegateChainIdChanged);
+//DECLARE_DELEGATE(FDelegateWalletReady);
+//DECLARE_DELEGATE(FDelegateWalletPaused);
+//DECLARE_DELEGATE(FDelegateWalletConnected);
+//DECLARE_DELEGATE(FDelegateWalletDisconnected);
+//DECLARE_DELEGATE(FDelegateWalletAuthorized);
+//DECLARE_DELEGATE(FDelegateWalletUnauthorized);
+//DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestFailed, FMetamaskEthereumResponse);
+//DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestResult, FMetamaskEthereumResponse);
+//DECLARE_DELEGATE(FDelegateAccountChanged);
+//DECLARE_DELEGATE(FDelegateChainIdChanged);
 
-
-UCLASS()
-class MMBP_API UMetamaskWallet: public UObject
+class MMBP_API UMetamaskWallet
 {
-	GENERATED_BODY()
 
 public:
 	UMetamaskWallet() = default;
@@ -91,16 +87,16 @@ protected:
 	bool KeysExchanged;
 
 	/* Delegates */
-	FDelegateWalletReady DWalletReady;
-	FDelegateWalletPaused DWalletPaused;
-	FDelegateWalletConnected DWalletConnected;
-	FDelegateWalletDisconnected DWalletDisconnected;
-	FDelegateWalletAuthorized DWalletAuthorized;
-	FDelegateWalletUnauthorized DWalletUnauthorized;
-	FDelegateEthereumRequestFailed DEthereumRequestFailed;
-	FDelegateEthereumRequestResult DEthereumRequestResult;
-	FDelegateAccountChanged DAccountChanged;
-	FDelegateChainIdChanged DChainIdChanged;
+	//FDelegateWalletReady DWalletReady;
+	//FDelegateWalletPaused DWalletPaused;
+	//FDelegateWalletConnected DWalletConnected;
+	//FDelegateWalletDisconnected DWalletDisconnected;
+	//FDelegateWalletAuthorized DWalletAuthorized;
+	//FDelegateWalletUnauthorized DWalletUnauthorized;
+	//FDelegateEthereumRequestFailed DEthereumRequestFailed;
+	//FDelegateEthereumRequestResult DEthereumRequestResult;
+	//FDelegateAccountChanged DAccountChanged;
+	//FDelegateChainIdChanged DChainIdChanged;
 
 	FString SocketUrl;
 	FString MetamaskAppLinkUrl;

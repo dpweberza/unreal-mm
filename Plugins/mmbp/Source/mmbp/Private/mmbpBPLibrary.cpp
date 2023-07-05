@@ -51,28 +51,13 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 	return texture;
 }
 
-UECIES* UmmbpBPLibrary::Initialise()
+void UmmbpBPLibrary::InitializeWallet()
 {
-	UECIES* Ecies = NewObject<UECIES>();
-	return Ecies;
-}
-
-FString UmmbpBPLibrary::Encrypt(UECIES* Ecies, FString PlainText)
-{
-	return Ecies->Encrypt(PlainText);
-}
-
-FString UmmbpBPLibrary::GetPublicKey(UECIES* Ecies)
-{
-	return Ecies->GetPublicKeyAsString();
-}
-
-FString UmmbpBPLibrary::EncryptWithKey(UECIES* Ecies, FString PlainText, FString PublicKey)
-{
-	return Ecies->EncryptWithKey(PlainText, PublicKey);
-}
-
-FString UmmbpBPLibrary::Decrypt(UECIES* Ecies, FString CipherText)
-{
-	return Ecies->Decrypt(CipherText);
+	UMetamaskSession* Session = new UMetamaskSession();
+	UMetamaskTransport* Transport = new UMetamaskTransport();
+	UMetamaskSocketWrapper* Socket = new UMetamaskSocketWrapper();
+	FString SocketUrl = TEXT("http://localhost:3000");
+	UMetamaskWallet* Wallet = new UMetamaskWallet(Session, Transport, Socket, SocketUrl);
+	UE_LOG(LogTemp, Log, TEXT("Initialised Wallet"));
+	Wallet->Connect();
 }

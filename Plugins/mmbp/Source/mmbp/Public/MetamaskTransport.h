@@ -2,15 +2,12 @@
 
 #include "CoreMinimal.h"
 #include "MetamaskEthereumRequest.h"
-#include "MetamaskTransport.generated.h"
 
 /**
  *
  */
-UCLASS()
-class MMBP_API UMetamaskTransport : public UObject
+class MMBP_API UMetamaskTransport
 {
-	GENERATED_BODY()
 
 public:
 	UMetamaskTransport();

@@ -2,28 +2,31 @@
 
 #include "CoreMinimal.h"
 #include "MetamaskSessionData.h"
-#include "MetamaskSession.generated.h"
+#include "MetamaskMessage.h"
+#include "Json.h"
+#include "ECIES.h"
 
 /**
  *
  */
-UCLASS()
-class MMBP_API UMetamaskSession : public UObject
+class MMBP_API UMetamaskSession
 {
-	GENERATED_BODY()
 
 public:
 	UMetamaskSession();
+	UMetamaskSession(UECIES& Ecies, FMetamaskSessionData SessionData);
 	~UMetamaskSession();
 
-	FString PrepareMessage(TSharedPtr<FJsonObject> Data, bool Encrypt, FString WalletPublicKey);
+	FMetamaskMessage PrepareMessage(TSharedPtr<FJsonObject> &Data, bool Encrypt, FString WalletPublicKey);
 
 	FMetamaskSessionData SessionData;
 
 	FString PublicKey();
 
 	bool DecryptMessage(FString Message, FString DecryptedJsonMessage);
+	FString EncryptMessage(FString Message, FString WalletPublicKey);
 
 protected:
 	FString ProtectedPublicKey;
+	UECIES& Ecies;
 };
