@@ -52,6 +52,7 @@ void UMetamaskSocketWrapper::Dispose()
 
 void UMetamaskSocketWrapper::Emit(FString EventName, FString Message)
 {
+	UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message);
 	Socket->Emit(EventName, Message);
 }
 

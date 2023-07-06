@@ -89,7 +89,24 @@ FString UECIES::Decrypt(FString Ciphertext)
     return FString(UTF8_TO_TCHAR(plaintext.c_str()));
 }
 
-FString UECIES::GetPublicKeyAsString()
+FString UECIES::GetPublicKeyAsBase64String()
+{
+    std::string publicKeyStr;
+    CryptoPP::StringSink publicKeySink(publicKeyStr);
+    this->PublicKey.Save(publicKeySink);
+
+    std::string output;
+
+    // Convert the public key binary to base64 string
+    CryptoPP::StringSource(
+        publicKeyStr, true,
+        new CryptoPP::Base64Encoder(new CryptoPP::StringSink(output))
+    );
+
+    return FString(UTF8_TO_TCHAR(output.c_str()));
+}
+
+FString UECIES::GetPublicKeyAsHexString()
 {
     std::string publicKeyStr;
     CryptoPP::StringSink publicKeySink(publicKeyStr);
@@ -100,11 +117,12 @@ FString UECIES::GetPublicKeyAsString()
     // Convert the public key binary to hexadecimal string
     CryptoPP::StringSource(
         publicKeyStr, true,
-        new CryptoPP::Base64Encoder(new CryptoPP::StringSink(output))
+        new CryptoPP::HexEncoder(new CryptoPP::StringSink(output))
     );
 
     return FString(UTF8_TO_TCHAR(output.c_str()));
 }
+
 
 bool UECIES::DecodeBase64Key(const FString& Base64Key, TArray<uint8>& OutKeyData)
 {

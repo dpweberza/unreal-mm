@@ -127,14 +127,17 @@ void UMetamaskWallet::SendMessage(TSharedPtr<FJsonObject> Data, bool Encrypt)
 {
     FMetamaskMessage Message = Session->PrepareMessage(Data, Encrypt, WalletPublicKey);
     FString MessageString = Message.ToJsonString();
+    UE_LOG(LogTemp, Log, TEXT("Send Message: Message is %s"), *MessageString);
     if (Paused)
     {
+        UE_LOG(LogTemp, Log, TEXT("Send Message Paused"));
         //DWalletReady.BindLambda([MessageString, this]() {
         //    Socket->Emit(MessageEventName, MessageString);
         //    DWalletReady = FDelegateWalletReady();
         //});
     }
     else {
+        UE_LOG(LogTemp, Log, TEXT("Send Message Emit"));
         Socket->Emit(MessageEventName, MessageString);
     }
 }
@@ -269,8 +272,6 @@ void UMetamaskWallet::OnMessageReceived(FString Response, TSharedPtr<FJsonValue>
     UE_LOG(LogTemp, Log, TEXT("%s"), *Response);
 
     // Serialize JsonValue to see what it is
-
-
     if (JsonValue.IsValid())
     {
         UE_LOG(LogTemp, Log, TEXT("JsonValue valid json"));
@@ -300,7 +301,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, TSharedPtr<FJsonValue>
             UE_LOG(LogTemp, Log, TEXT("Object is %s"), *JsonString);
 
             if (JsonObject->TryGetObjectField(TEXT("message"), MessageObject)) {
-                if (JsonObject->TryGetStringField(TEXT("messageType"), MessageType))
+                if (MessageObject->Get()->TryGetStringField(TEXT("type"), MessageType))
                 {
                     // Do nothing as it would extract value to MessageType, Try so it doesn't throw exception
                 }

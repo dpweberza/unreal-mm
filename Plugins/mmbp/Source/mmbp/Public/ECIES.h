@@ -37,7 +37,8 @@ public:
 
 	FString EncryptWithKey(const FString& Plaintext, const FString& Base64PublicKey);
 
-	FString GetPublicKeyAsString();
+	FString GetPublicKeyAsBase64String();
+	FString GetPublicKeyAsHexString();
 
 private:
 	UECIES();

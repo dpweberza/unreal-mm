@@ -4,16 +4,16 @@
 
 UMetamaskSession::UMetamaskSession(): Ecies(UECIES::GetInstance())
 {
-	ProtectedPublicKey = Ecies.GetPublicKeyAsString();
-	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), &ProtectedPublicKey);
+	ProtectedPublicKey = Ecies.GetPublicKeyAsHexString();
+	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
 }
 
 UMetamaskSession::UMetamaskSession(UECIES& InEcies, FMetamaskSessionData InSessionData) :
 	Ecies(InEcies),
 	SessionData(InSessionData)
 {
-	ProtectedPublicKey = Ecies.GetPublicKeyAsString();
-	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), &ProtectedPublicKey);
+	ProtectedPublicKey = Ecies.GetPublicKeyAsHexString();
+	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
 }
 
 UMetamaskSession::~UMetamaskSession()
@@ -26,18 +26,15 @@ FMetamaskMessage UMetamaskSession::PrepareMessage(TSharedPtr<FJsonObject> &Data,
 	TSharedRef<TJsonWriter<>> JsonWriter = TJsonWriterFactory<>::Create(&JsonString);
 	FJsonSerializer::Serialize(Data.ToSharedRef(), JsonWriter);
 
-	FString ChannelId;
 	FMetamaskMessage Message;
-	if (Data->TryGetStringField(TEXT("ChannelId"), ChannelId))
+
+	Message.Id = SessionData.ChannelId;
+	if (Encrypt)
 	{
-		Message.Id = ChannelId;
-		if (Encrypt)
-		{
-			Message.Message = Ecies.EncryptWithKey(JsonString, WalletPublicKey);
-		}
-		else {
-			Message.DataObject = Data;
-		}
+		Message.Message = Ecies.EncryptWithKey(JsonString, WalletPublicKey);
+	}
+	else {
+		Message.DataObject = Data;
 	}
 
 	return Message;
