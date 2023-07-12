@@ -14,7 +14,6 @@ public class CryptoPP : ModuleRules
 		{
 			// Add the import library
 			PublicAdditionalLibraries.Add(Path.Combine(ModuleDirectory, "x64", "Release", "cryptlib.lib"));
-
 			PublicSystemIncludePaths.Add(Path.Combine(ModuleDirectory, "include"));
 		}
 

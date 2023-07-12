@@ -40,7 +40,7 @@ public class mmbp : ModuleRules
 				"SlateCore",
 				"CryptoPP",
 				"HTTP",
-				"SocketIOClient", "SocketIOLib", "Json", "SIOJson"
+				"SocketIOClient", "SocketIOLib", "Json", "SIOJson",
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

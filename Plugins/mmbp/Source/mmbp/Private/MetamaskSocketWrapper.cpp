@@ -8,11 +8,10 @@ UMetamaskSocketWrapper::~UMetamaskSocketWrapper()
 {
 }
 
-void UMetamaskSocketWrapper::Initialize(FString SocketUrl, TMap<FString, FString> SocketOptions)
+void UMetamaskSocketWrapper::Initialize(FString InSocketUrl, TMap<FString, FString> SocketOptions)
 {
 	UE_LOG(LogTemp, Log, TEXT("Initializing Socket with url: %s"), *SocketUrl);
-	Socket = ISocketIOClientModule::Get().NewValidNativePointer(true);
-	Socket->AddressAndPort = SocketUrl;
+	Socket = ISocketIOClientModule::Get().NewValidNativePointer(InSocketUrl.Contains("https"));
 	Socket->OnConnectedCallback = [this](FString SessionId) {
 		OnConnected(SessionId);
 	}; 
@@ -20,13 +19,14 @@ void UMetamaskSocketWrapper::Initialize(FString SocketUrl, TMap<FString, FString
 		OnDisconnected();
 	};
 	Socket->VerboseLog = true;
+	SocketUrl = InSocketUrl;
 	UE_LOG(LogTemp, Log, TEXT("Finished initializing socket"));
 }
 
 void UMetamaskSocketWrapper::ConnectAsync()
 {
-	UE_LOG(LogTemp, Log, TEXT("Socket Connecting async: %s"), &Socket->AddressAndPort);
-	Socket->Connect(Socket->AddressAndPort);
+	UE_LOG(LogTemp, Log, TEXT("Socket Connecting async: %s"), *SocketUrl);
+	Socket->Connect(SocketUrl);
 }
 
 void UMetamaskSocketWrapper::OnConnected(const FString& SessionId)
@@ -48,6 +48,12 @@ void UMetamaskSocketWrapper::DisconnectAsync()
 void UMetamaskSocketWrapper::Dispose()
 {
 	Socket->ClearCallbacks();
+}
+
+void UMetamaskSocketWrapper::Emit(FString EventName, FMetamaskMessage Message)
+{
+	UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message.ToJsonString());
+	Socket->Emit(EventName, Message.ToJsonObject());
 }
 
 void UMetamaskSocketWrapper::Emit(FString EventName, FString Message)

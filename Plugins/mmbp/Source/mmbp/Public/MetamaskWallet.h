@@ -70,7 +70,7 @@ protected:
 	void onSocketDisconnected();
 	void JoinChannel(FString channelId);
 	void LeaveChannel(FString channelId);
-	void OnMessageReceived(FString response, TSharedPtr<FJsonValue> JsonValue);
+	void OnMessageReceived(FString response, const TSharedPtr<FJsonValue>& JsonValue);
 	void OnOtpReceived(int32 answer);
 	void OnClientsWaitingToJoin(FString response, TSharedPtr<FJsonValue> JsonValue);
 	void OnClientsConnected(FString response, TSharedPtr<FJsonValue> JsonValue);

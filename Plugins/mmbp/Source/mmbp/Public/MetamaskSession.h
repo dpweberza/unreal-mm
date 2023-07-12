@@ -23,7 +23,7 @@ public:
 
 	FString PublicKey();
 
-	bool DecryptMessage(FString Message, FString DecryptedJsonMessage);
+	FString DecryptMessage(FString Message);
 	FString EncryptMessage(FString Message, FString WalletPublicKey);
 
 protected:
