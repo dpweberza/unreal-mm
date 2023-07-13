@@ -7,6 +7,8 @@
 #include "MetamaskSession.h"
 #include "MetamaskTransport.h"
 #include "MetamaskSocketWrapper.h"
+#include "MetamaskEthereumRequest.h"
+#include "MetamaskHelper.h"
 #include "mmbpBPLibrary.generated.h"
 
 /* 
@@ -26,6 +28,7 @@
 *	For more info on custom blueprint nodes visit documentation:
 *	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
 */
+
 UCLASS()
 class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 {
@@ -38,5 +41,14 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 		static UTexture2D* GenerateQrCode(FString TextToConvert	);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Initialize Wallet", Keywords = "MetaMask"), Category = "MetaMask")
-		static FString InitializeWallet();
+		static UMetamaskWallet* InitializeWallet();
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Connect Wallet", Keywords = "MetaMask"), Category = "MetaMask")
+		static FString ConnectWallet(UMetamaskWallet* Wallet);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SendTransaction", Keywords = "MetaMask"), Category = "MetaMask")
+		static void SendTransaction(UMetamaskWallet* Wallet);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "IsWalletAuthorized", Keywords = "MetaMask"), Category = "MetaMask")
+		static bool IsWalletAuthorized(UMetamaskWallet* Wallet);
 };

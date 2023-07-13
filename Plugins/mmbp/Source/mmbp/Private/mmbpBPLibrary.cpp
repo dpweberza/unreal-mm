@@ -17,7 +17,6 @@ float UmmbpBPLibrary::mmbpSampleFunction(float Param)
 	return -1;
 }
 
-
 UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 {
 	QrCode qr = QrCode::encodeText(TCHAR_TO_UTF8(*TextToConvert), QrCode::Ecc::LOW);
@@ -33,7 +32,7 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 	{
 		for (uint8 y = 0; y < size; y++)
 		{
-			FColor color = qr.getModule(x, y) ? white : black;
+			FColor color = qr.getModule(x, y) ? black : white;
 			pixels[x + y * size] = color;
 		}
 	}
@@ -51,7 +50,7 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 	return texture;
 }
 
-FString UmmbpBPLibrary::InitializeWallet()
+UMetamaskWallet* UmmbpBPLibrary::InitializeWallet()
 {
 	UMetamaskSession* Session = new UMetamaskSession();
 	UMetamaskTransport* Transport = new UMetamaskTransport();
@@ -61,7 +60,44 @@ FString UmmbpBPLibrary::InitializeWallet()
 	UMetamaskWallet* Wallet = NewObject<UMetamaskWallet>();
 	Wallet->Initialize(Session, Transport, Socket, SocketUrl);
 	UE_LOG(LogTemp, Log, TEXT("Initialised Wallet"));
-	FString ConnectionUrl = Wallet->Connect();
 
-	return ConnectionUrl;
+	return Wallet;
+}
+
+FString UmmbpBPLibrary::ConnectWallet(UMetamaskWallet* Wallet)
+{
+	if (Wallet != nullptr)
+	{
+		return Wallet->Connect();
+	}
+	return FString();
+}
+
+void UmmbpBPLibrary::SendTransaction(UMetamaskWallet* Wallet)
+{
+	if (Wallet != nullptr)
+	{
+		FString Id = UMetamaskHelper::GenerateUUID();
+		TMap<FString, FString> Properties;
+		Properties.Add("to", Wallet->SelectedAddress);
+		Properties.Add("from", Wallet->SelectedAddress);
+		Properties.Add("value", "0");
+		FMetamaskParameters Params{ Properties };
+		FMetamaskEthereumRequest Request{
+			Id,
+			"eth_sendTransaction",
+			{
+				Params
+			}
+		};
+		Wallet->Request(Request);
+	}
+}
+
+bool UmmbpBPLibrary::IsWalletAuthorized(UMetamaskWallet* Wallet)
+{
+	if (Wallet != nullptr) {
+		return Wallet->IsAuthorized();
+	}
+	return false;
 }

@@ -127,7 +127,7 @@ FString UECIES::Decrypt(const FString& Base64Message)
 
     CryptoPP::SecByteBlock SharedSecret = Decapsulate(ParsedPublicKey);
     //UE_LOG(LogTemp, Log, TEXT("In Decrypt: SharedSecret"));
-    SecByteBlockToString(SharedSecret);
+    //SecByteBlockToString(SharedSecret);
 
     CryptoPP::GCM<CryptoPP::AES>::Decryption d;
     d.SetKeyWithIV(SharedSecret.BytePtr(), SharedSecret.size(), (const CryptoPP::byte*)iv.data(), iv.size());
@@ -197,11 +197,11 @@ FString UECIES::EncryptWithKey(const FString& Plaintext, const FString& HexPubli
     std::string hexPublicKey = std::string(TCHAR_TO_UTF8(*HexPublicKey));
     std::string publicKey;
 
-    //CryptoPP::StringSource(hexPublicKey, true,
-    //    new CryptoPP::HexDecoder(
-    //        new CryptoPP::StringSink(publicKey)
-    //    )
-    //);
+    CryptoPP::StringSource(hexPublicKey, true,
+        new CryptoPP::HexDecoder(
+            new CryptoPP::StringSink(publicKey)
+        )
+    );
 
     //UE_LOG(LogTemp, Log, TEXT("encrypt with key: %s"), *HexPublicKey);
     CryptoPP::ECIES<CryptoPP::ECP>::PublicKey ParsedPublicKey = ParsePublicKey(publicKey);
@@ -227,7 +227,7 @@ FString UECIES::EncryptWithKey(const FString& Plaintext, const FString& HexPubli
 
     CryptoPP::SecByteBlock SharedSecret = Encapsulate(ParsedPublicKey);
     //UE_LOG(LogTemp, Log, TEXT("In Encrypt: SharedSecret"));
-    SecByteBlockToString(SharedSecret);
+    //SecByteBlockToString(SharedSecret);
 
     try
     {

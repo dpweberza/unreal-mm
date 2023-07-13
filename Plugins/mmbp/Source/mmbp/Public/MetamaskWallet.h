@@ -54,6 +54,10 @@ public:
 	bool IsPaused() { return this->Paused; };
 	bool IsAuthorized() { return this->Authorized; };
 
+	TFunction<void()> OnWalletDisconnectedCallback;
+
+	FString GetConnectionUrl();
+
 	void SetMetamaskTransport(UMetamaskTransport* transport);
 	void SetMetamaskSocketWrapper(UMetamaskSocketWrapper* socket);
 
@@ -93,6 +97,7 @@ protected:
 	//FDelegateWalletReady DWalletReady;
 	//FDelegateWalletPaused DWalletPaused;
 	//FDelegateWalletConnected DWalletConnected;
+
 	//FDelegateWalletDisconnected DWalletDisconnected;
 	//FDelegateWalletAuthorized DWalletAuthorized;
 	//FDelegateWalletUnauthorized DWalletUnauthorized;
@@ -109,7 +114,9 @@ protected:
 	FString ClientsConnectedEventName;
 	FString ClientsDisconnectedEventName;
 	FString ClientsWaitingToJoinEventName;
-	FString ConnectionUrl; 
+	FString ConnectionUrl;
 
 	TMap<FString, FMetamaskEthereumRequest> SubmittedRequests;
+
+private:
 };

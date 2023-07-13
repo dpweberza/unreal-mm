@@ -47,6 +47,10 @@ UMetamaskWallet::UMetamaskWallet()
 UMetamaskWallet::~UMetamaskWallet()
 {
     //Dispose();
+    //Session = nullptr;
+    //Socket = nullptr;
+    //Transport = nullptr;
+    //Instance = nullptr;
 }
 
 void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
@@ -89,6 +93,11 @@ FString UMetamaskWallet::Connect()
     return ConnectionUrl;
 }
 
+FString UMetamaskWallet::GetConnectionUrl()
+{
+    return ConnectionUrl;
+}
+
 void UMetamaskWallet::Disconnect()
 {
     UE_LOG(LogTemp, Log, TEXT("Disconnected"));
@@ -103,15 +112,27 @@ void UMetamaskWallet::Disconnect()
     SelectedAddress = FString();
     SelectedChainId = FString();
 
-    Socket->DisconnectAsync();
-    //DWalletDisconnected.ExecuteIfBound();
+    if (Socket != nullptr)
+    {
+        Socket->DisconnectAsync();
+    }
+    if (OnWalletDisconnectedCallback != nullptr)
+    {
+        OnWalletDisconnectedCallback();
+    }
 }
 
 void UMetamaskWallet::Dispose()
 {
-    LeaveChannel(Session->SessionData.ChannelId);
+    if (Socket != nullptr)
+    {
+        if (!Session->SessionData.ChannelId.IsEmpty())
+        {
+            LeaveChannel(Session->SessionData.ChannelId);
+        }
+        Socket->Dispose();
+    }
     Disconnect();
-    Socket->Dispose();
 }
 
 void UMetamaskWallet::SetMetamaskTransport(UMetamaskTransport* transport)
@@ -146,8 +167,8 @@ void UMetamaskWallet::SendOriginatorInfo()
     TSharedPtr<FJsonObject> Request = MakeShareable(new FJsonObject());
     TSharedPtr<FJsonObject> OriginatorInfo = MakeShareable(new FJsonObject());
 
-    OriginatorInfo->SetStringField("title", "shardbound");
-    OriginatorInfo->SetStringField("url", "shardbound.com");
+    OriginatorInfo->SetStringField("title", "example");
+    OriginatorInfo->SetStringField("url", "example.com");
     OriginatorInfo->SetStringField("platform", "unreal");
     OriginatorInfo->SetStringField("apiVersion", "1.0");
 
@@ -176,13 +197,9 @@ void UMetamaskWallet::OnWalletResume()
 
     FString Id = UMetamaskHelper::GenerateUUID();
 
-    FMetamaskEthereumRequest Request{
-        /*.Id =*/ Id,
-        /*.Method =*/ "eth_requestAccounts",
-        /*.Parameters =*/ {
-            /*.Properties =*/ {}
-        }
-    };
+    FMetamaskEthereumRequest Request;
+    Request.Id = Id;
+    Request.Method = "eth_requestAccounts";
 
     SubmittedRequests.Add(Id, Request);
     SendEthereumRequest(Id, Request, false);
@@ -203,13 +220,9 @@ void UMetamaskWallet::OnWalletReady()
 
     FString Id = UMetamaskHelper::GenerateUUID();
 
-    FMetamaskEthereumRequest Request{
-        /*.Id =*/ Id,
-        /*.Method =*/ "eth_requestAccounts",
-        /*.Parameters =*/ {
-            /*.Properties =*/ {}
-        }
-    };
+    FMetamaskEthereumRequest Request;
+    Request.Id = Id;
+    Request.Method = "eth_requestAccounts";
 
     SubmittedRequests.Add(Id, Request);
     SendEthereumRequest(Id, Request, false);
@@ -221,12 +234,11 @@ void UMetamaskWallet::OnWalletReady()
 
 void UMetamaskWallet::InitializeState()
 {
-    FMetamaskEthereumRequest _Request{
-        "eth_requestAccounts",
-        {
-            {}
-        }
-    };
+    FString Id = UMetamaskHelper::GenerateUUID();
+    FMetamaskEthereumRequest _Request;
+    _Request.Id = Id;
+    _Request.Method = "eth_requestAccounts";
+
     Request(_Request);
 }
 
@@ -369,7 +381,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
                     return;
                 }
 
-                UE_LOG(LogTemp, Log, TEXT("%"), *DecryptedJsonString); // FIXME
+                UE_LOG(LogTemp, Log, TEXT("%s"), *DecryptedJsonString); // FIXME
 
                 TSharedPtr<FJsonObject> DecryptedJsonObject;
                 TSharedRef<TJsonReader<>> DecryptedJsonReader = TJsonReaderFactory<>::Create(DecryptedJsonString);
@@ -405,22 +417,24 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
                             OnWalletResume();
                             return;
                         }
+                    }
 
-                        const TSharedPtr<FJsonObject>* DataObject;
-                        if (DecryptedJsonObject->TryGetObjectField(TEXT("data"), DataObject))
+                    const TSharedPtr<FJsonObject>* DataObject;
+                    UE_LOG(LogTemp, Log, TEXT("Trying get data object from message"));
+                    if (DecryptedJsonObject->TryGetObjectField(TEXT("data"), DataObject))
+                    {
+                        UE_LOG(LogTemp, Log, TEXT("Got the data object"));
+                        FString Id;
+                        if (DataObject->Get()->TryGetStringField(TEXT("id"), Id))
                         {
-                            FString Id;
-                            if (DataObject->Get()->TryGetStringField(TEXT("id"), Id))
-                            {
-                                OnEthereumRequestReceived(Id, DataObject);
-                            }
-                            else {
-                                OnEthereumRequestReceived(DataObject);
-                            }
+                            OnEthereumRequestReceived(Id, DataObject);
                         }
-                        else if (DecryptedJsonObject->TryGetObjectField(TEXT("walletinfo"), DataObject)) {
+                        else {
                             OnEthereumRequestReceived(DataObject);
                         }
+                    }
+                    else if (DecryptedJsonObject->TryGetObjectField(TEXT("walletinfo"), DataObject)) {
+                        OnEthereumRequestReceived(DataObject);
                     }
                 }
             }
@@ -467,6 +481,7 @@ void UMetamaskWallet::OnClientsDisconnected(FString Response, TSharedPtr<FJsonVa
 
 void UMetamaskWallet::OnWalletAuthorized()
 {
+    UE_LOG(LogTemp, Log, TEXT("Wallet Authorized"));
     if (!Authorized)
     {
         Authorized = true;
@@ -483,7 +498,12 @@ void UMetamaskWallet::OnWalletUnauthorized()
 
 void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJsonObject> *DataObject)
 {
-    FMetamaskEthereumRequest *Request = SubmittedRequests.Find(Id);
+    UE_LOG(LogTemp, Log, TEXT("OnEthereumRequestReceived"));
+    FMetamaskEthereumRequest* Request = nullptr;
+    if (SubmittedRequests.Num() > 0)
+    {
+        Request = SubmittedRequests.Find(Id);
+    }
 
     if (Request != nullptr)
     {
@@ -547,6 +567,7 @@ void UMetamaskWallet::OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* D
     FString Method;
     if (DataObject->Get()->TryGetStringField(TEXT("method"), Method))
     {
+        UE_LOG(LogTemp, Log, TEXT("Method %s"), *Method);
         const TSharedPtr<FJsonObject>* ParamsObject;
         const TArray<TSharedPtr<FJsonValue>>* ParamsArr;
         if (Method == "metamask_accountsChanged")
