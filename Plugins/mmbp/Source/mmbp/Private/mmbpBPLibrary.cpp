@@ -101,3 +101,13 @@ bool UmmbpBPLibrary::IsWalletAuthorized(UMetamaskWallet* Wallet)
 	}
 	return false;
 }
+
+void UmmbpBPLibrary::SetupCallbacks(UMetamaskWallet* Wallet, const FOnDisconnectDelegate& OnDisconnect)
+{
+	Wallet->OnWalletDisconnectedCallback = [OnDisconnect, Wallet]() {
+		if (OnDisconnect.IsBound())
+		{
+			OnDisconnect.Execute();
+		}
+	};
+}

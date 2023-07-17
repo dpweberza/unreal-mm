@@ -29,9 +29,13 @@
 *	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
 */
 
+DECLARE_DYNAMIC_DELEGATE(FOnDisconnectDelegate);
+
 UCLASS()
 class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 {
+	FOnDisconnectDelegate OnDisconnect;
+
 	GENERATED_UCLASS_BODY()
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "Execute Sample function", Keywords = "mmbp sample test testing"), Category = "MetaMask")
@@ -51,4 +55,7 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "IsWalletAuthorized", Keywords = "MetaMask"), Category = "MetaMask")
 		static bool IsWalletAuthorized(UMetamaskWallet* Wallet);
+
+	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SetupCallbacks", Keywords = "MetaMask"), Category = "MetaMask")
+		static void SetupCallbacks(UMetamaskWallet* Wallet, const FOnDisconnectDelegate& OnDisconnect);
 };

@@ -14,9 +14,13 @@ UMetamaskSession::UMetamaskSession(): Ecies(UECIES::GetInstance())
 
 	//UE_LOG(LogTemp, Log, TEXT("encryptedText: %s"), *encryptedText);
 
-	//FString decryptedText = Ecies.Decrypt(encryptedText);
-
-	//UE_LOG(LogTemp, Log, TEXT("decrypted: %s"), *decryptedText);
+	//try {
+	//	FString decryptedText = Ecies.Decrypt(encryptedText);
+	//	UE_LOG(LogTemp, Log, TEXT("decrypted: %s"), *decryptedText);
+	//}
+	//catch (CryptoPP::HashVerificationFilter::HashVerificationFailed Exception) {
+	//	UE_LOG(LogTemp, Log, TEXT("Failed to decrypt"));
+	//}
 }
 
 UMetamaskSession::UMetamaskSession(UECIES& InEcies, FMetamaskSessionData InSessionData) :
@@ -60,7 +64,14 @@ FString UMetamaskSession::PublicKey()
 
 FString UMetamaskSession::DecryptMessage(FString Message)
 {
-	return Ecies.Decrypt(Message);
+	try {
+		return Ecies.Decrypt(Message);
+	}
+	catch (CryptoPP::Exception Exception) {
+		FString ErrorMessage = FString(UTF8_TO_TCHAR(Exception.GetWhat().c_str()));
+		UE_LOG(LogTemp, Log, TEXT("Error in decrypting message: %s"), *ErrorMessage);
+		return FString();
+	}
 }
 
 FString UMetamaskSession::EncryptMessage(FString Message, FString WalletPublicKey)
