@@ -5,7 +5,6 @@
 #include "Kismet/BlueprintFunctionLibrary.h"
 #include "MetamaskWallet.h"
 #include "MetamaskSession.h"
-#include "MetamaskTransport.h"
 #include "MetamaskSocketWrapper.h"
 #include "MetamaskEthereumRequest.h"
 #include "MetamaskHelper.h"
@@ -29,12 +28,14 @@
 *	https://wiki.unrealengine.com/Custom_Blueprint_Node_Creation
 */
 
-DECLARE_DYNAMIC_DELEGATE(FOnDisconnectDelegate);
+DECLARE_DYNAMIC_DELEGATE(FWalletDisconnectDelegate);
+DECLARE_DYNAMIC_DELEGATE(FWalletConnectDelegate);
 
 UCLASS()
 class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 {
-	FOnDisconnectDelegate OnDisconnect;
+	FWalletDisconnectDelegate OnWalletDisconnect;
+	FWalletConnectDelegate OnWalletConnect;
 
 	GENERATED_UCLASS_BODY()
 
@@ -57,5 +58,9 @@ class UmmbpBPLibrary : public UBlueprintFunctionLibrary
 		static bool IsWalletAuthorized(UMetamaskWallet* Wallet);
 
 	UFUNCTION(BlueprintCallable, meta = (DisplayName = "SetupCallbacks", Keywords = "MetaMask"), Category = "MetaMask")
-		static void SetupCallbacks(UMetamaskWallet* Wallet, const FOnDisconnectDelegate& OnDisconnect);
+		static void SetupCallbacks(
+			UMetamaskWallet* Wallet, 
+			const FWalletDisconnectDelegate& OnWalletDisconnect,
+			const FWalletConnectDelegate& OnWalletConnect
+		);
 };

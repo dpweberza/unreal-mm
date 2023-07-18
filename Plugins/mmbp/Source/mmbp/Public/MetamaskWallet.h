@@ -6,7 +6,6 @@
 #include "Json.h"
 #include "GenericPlatform/GenericPlatformHttp.h"
 #include "MetamaskSession.h"
-#include "MetamaskTransport.h"
 #include "MetamaskSocketWrapper.h"
 #include "MetamaskParameters.h"
 #include "MetamaskEthereumRequest.h"
@@ -18,16 +17,14 @@
  * 
  */
 
-//DECLARE_DELEGATE(FDelegateWalletReady);
-//DECLARE_DELEGATE(FDelegateWalletPaused);
-//DECLARE_DELEGATE(FDelegateWalletConnected);
-//DECLARE_DELEGATE(FDelegateWalletDisconnected);
-//DECLARE_DELEGATE(FDelegateWalletAuthorized);
-//DECLARE_DELEGATE(FDelegateWalletUnauthorized);
-//DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestFailed, FMetamaskEthereumResponse);
-//DECLARE_DELEGATE_OneParam(FDelegateEthereumRequestResult, FMetamaskEthereumResponse);
-//DECLARE_DELEGATE(FDelegateAccountChanged);
-//DECLARE_DELEGATE(FDelegateChainIdChanged);
+DECLARE_MULTICAST_DELEGATE(FOnMetamaskWalletReady);
+DECLARE_DELEGATE(FOnMetamaskWalletPaused);
+DECLARE_DELEGATE(FOnMetamaskWalletConnected);
+DECLARE_DELEGATE(FOnMetamaskWalletDisconnected);
+DECLARE_DELEGATE(FOnMetamaskWalletAuthorized);
+DECLARE_DELEGATE(FOnMetamaskWalletUnauthorized);
+DECLARE_DELEGATE(FOnMetamaskAccountChanged);
+DECLARE_DELEGATE(FOnMetamaskChainIdChanged);
 
 UCLASS()
 class MMBP_API UMetamaskWallet: public UObject
@@ -38,14 +35,13 @@ public:
 	UMetamaskWallet();
 	~UMetamaskWallet();
 
-	void Initialize(UMetamaskSession* session, UMetamaskTransport* transport, UMetamaskSocketWrapper* socket, FString socketUrl);
+	void Initialize(UMetamaskSession* session, UMetamaskSocketWrapper* socket, FString socketUrl);
 	void Request(FMetamaskEthereumRequest Request);
 	FString Connect();
 	void Disconnect();
 	void Dispose();
 
 	UMetamaskSession* Session;
-	UMetamaskTransport* Transport;
 	UMetamaskSocketWrapper* Socket;
 	FString SelectedAddress;
 	FString SelectedChainId;
@@ -54,11 +50,20 @@ public:
 	bool IsPaused() { return this->Paused; };
 	bool IsAuthorized() { return this->Authorized; };
 
-	TFunction<void()> OnWalletDisconnectedCallback;
+	/* Delegates, Callbacks */
+	FOnMetamaskWalletConnected OnMetamaskWalletConnected;
+	FOnMetamaskWalletDisconnected OnMetamaskWalletDisconnected;
+	FOnMetamaskWalletReady OnMetamaskWalletReady;
+	FOnMetamaskWalletPaused OnMetamaskWalletPaused;
+	FOnMetamaskWalletAuthorized OnMetamaskWalletAuthorized;
+	FOnMetamaskWalletUnauthorized OnMetamaskWalletUnauthorized;
+	FOnMetamaskAccountChanged OnMetamaskAccountChanged;
+	FOnMetamaskChainIdChanged OnMetamaskChainIdChanged;
+
+	FDelegateHandle ReadyHandle;
 
 	FString GetConnectionUrl();
 
-	void SetMetamaskTransport(UMetamaskTransport* transport);
 	void SetMetamaskSocketWrapper(UMetamaskSocketWrapper* socket);
 
 	static TArray<FString> MethodsToRedirect;
@@ -85,26 +90,12 @@ protected:
 	void OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* DataObject);
 	void OnAccountsChanged(FString address);
 	void OnChainIdChanged(FString newChainId);
-	void SendEthereumRequest(FString id, FMetamaskEthereumRequest request, bool openTransport);
-	bool ShouldOpenMM(FString method);
+	void SendEthereumRequest(FString id, FMetamaskEthereumRequest request);
 
 	bool Connected;
 	bool Paused;
 	bool Authorized;
 	bool KeysExchanged;
-
-	/* Delegates */
-	//FDelegateWalletReady DWalletReady;
-	//FDelegateWalletPaused DWalletPaused;
-	//FDelegateWalletConnected DWalletConnected;
-
-	//FDelegateWalletDisconnected DWalletDisconnected;
-	//FDelegateWalletAuthorized DWalletAuthorized;
-	//FDelegateWalletUnauthorized DWalletUnauthorized;
-	//FDelegateEthereumRequestFailed DEthereumRequestFailed;
-	//FDelegateEthereumRequestResult DEthereumRequestResult;
-	//FDelegateAccountChanged DAccountChanged;
-	//FDelegateChainIdChanged DChainIdChanged;
 
 	FString SocketUrl;
 	FString MetamaskAppLinkUrl;
@@ -119,4 +110,6 @@ protected:
 	TMap<FString, FMetamaskEthereumRequest> SubmittedRequests;
 
 private:
+	int32 KeyStartHandshakeAttempts;
+	static int32 KEY_HANDSHAKE_ATTEMPTS_THRESHOLD;
 };

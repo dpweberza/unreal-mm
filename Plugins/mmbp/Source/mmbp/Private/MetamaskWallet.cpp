@@ -15,11 +15,11 @@ TArray<FString> UMetamaskWallet::MethodsToRedirect = {
         "wallet_addEthereumChain",
         "wallet_switchEthereumChain"
 };
+int32 UMetamaskWallet::KEY_HANDSHAKE_ATTEMPTS_THRESHOLD = 10;
 
-void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskTransport* InTransport, UMetamaskSocketWrapper* InSocket, FString InSocketUrl)
+void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskSocketWrapper* InSocket, FString InSocketUrl)
 {
     Session = InSession;
-    Transport = InTransport;
     Socket = InSocket;
     SocketUrl = InSocketUrl;
 
@@ -38,6 +38,8 @@ void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskTransport
     ClientsConnectedEventName = "clients_connected";
     ClientsDisconnectedEventName = "clients_disconnected";
     ClientsWaitingToJoinEventName = "clients_waiting_to_join";
+
+    KeyStartHandshakeAttempts = 0;
 }
 
 UMetamaskWallet::UMetamaskWallet()
@@ -49,7 +51,6 @@ UMetamaskWallet::~UMetamaskWallet()
     //Dispose();
     //Session = nullptr;
     //Socket = nullptr;
-    //Transport = nullptr;
     //Instance = nullptr;
 }
 
@@ -67,7 +68,7 @@ void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
     else {
         FString Id = UMetamaskHelper::GenerateUUID();
         SubmittedRequests.Add(Id, Request);
-        SendEthereumRequest(Id, Request, ShouldOpenMM(Request.Method));
+        SendEthereumRequest(Id, Request);
     }
 }
 
@@ -75,7 +76,7 @@ FString UMetamaskWallet::Connect()
 {
     UE_LOG(LogTemp, Log, TEXT("Connecting..."));
     TMap<FString, FString> SocketOptions = {
-        {TEXT("UserAgent"), Transport->UserAgent}
+        {TEXT("UserAgent"), TEXT("UnrealMetamask")}
     };
     Socket->Initialize(SocketUrl, SocketOptions);
     Socket->ConnectAsync();
@@ -85,10 +86,6 @@ FString UMetamaskWallet::Connect()
     FString ChannelId = Session->SessionData.ChannelId;
 
     ConnectionUrl = MetamaskAppLinkUrl + TEXT("/connect?channelId=") + FGenericPlatformHttp::UrlEncode(ChannelId) + TEXT("&pubkey=") + FGenericPlatformHttp::UrlEncode(Session->PublicKey());
-
-    if (!Transport->Connect(ConnectionUrl)) {
-        UE_LOG(LogTemp, Log, TEXT("Opening transport for connection failed"));
-    }
 
     return ConnectionUrl;
 }
@@ -112,14 +109,13 @@ void UMetamaskWallet::Disconnect()
     SelectedAddress = FString();
     SelectedChainId = FString();
 
+    KeyStartHandshakeAttempts = 0;
+
     if (Socket != nullptr)
     {
         Socket->DisconnectAsync();
     }
-    if (OnWalletDisconnectedCallback != nullptr)
-    {
-        OnWalletDisconnectedCallback();
-    }
+    OnMetamaskWalletDisconnected.ExecuteIfBound();
 }
 
 void UMetamaskWallet::Dispose()
@@ -135,11 +131,6 @@ void UMetamaskWallet::Dispose()
     Disconnect();
 }
 
-void UMetamaskWallet::SetMetamaskTransport(UMetamaskTransport* transport)
-{
-    this->Transport = transport;
-}
-
 void UMetamaskWallet::SetMetamaskSocketWrapper(UMetamaskSocketWrapper* socket)
 {
     this->Socket = socket;
@@ -151,10 +142,10 @@ void UMetamaskWallet::SendMessage(TSharedPtr<FJsonObject> Data, bool Encrypt)
     if (Paused)
     {
         UE_LOG(LogTemp, Log, TEXT("Send Message Paused"));
-        //DWalletReady.BindLambda([MessageString, this]() {
-        //    Socket->Emit(MessageEventName, MessageString);
-        //    DWalletReady = FDelegateWalletReady();
-        //});
+        ReadyHandle = OnMetamaskWalletReady.AddLambda([Message, this]() {
+            Socket->Emit(MessageEventName, Message);
+            OnMetamaskWalletReady.Remove(ReadyHandle);
+        });
     }
     else {
         UE_LOG(LogTemp, Log, TEXT("Send Message Emit"));
@@ -183,7 +174,7 @@ void UMetamaskWallet::OnWalletPaused()
     UE_LOG(LogTemp, Log, TEXT("Wallet Paused"));
     Paused = true;
 
-    //DWalletPaused.ExecuteIfBound();
+    OnMetamaskWalletPaused.ExecuteIfBound();
 }
 
 void UMetamaskWallet::OnWalletResume()
@@ -191,7 +182,7 @@ void UMetamaskWallet::OnWalletResume()
     UE_LOG(LogTemp, Log, TEXT("Wallet Resumed"));
     Paused = false;
 
-    //DWalletConnected.ExecuteIfBound();
+    OnMetamaskWalletConnected.ExecuteIfBound();
 
     InitializeState();
 
@@ -202,7 +193,7 @@ void UMetamaskWallet::OnWalletResume()
     Request.Method = "eth_requestAccounts";
 
     SubmittedRequests.Add(Id, Request);
-    SendEthereumRequest(Id, Request, false);
+    SendEthereumRequest(Id, Request);
 
     Connected = true;
 }
@@ -212,7 +203,7 @@ void UMetamaskWallet::OnWalletReady()
     UE_LOG(LogTemp, Log, TEXT("Wallet Ready"));
     Paused = false;
 
-    //DWalletConnected.ExecuteIfBound();
+    OnMetamaskWalletConnected.ExecuteIfBound();
 
     Connected = true;
 
@@ -225,11 +216,9 @@ void UMetamaskWallet::OnWalletReady()
     Request.Method = "eth_requestAccounts";
 
     SubmittedRequests.Add(Id, Request);
-    SendEthereumRequest(Id, Request, false);
+    SendEthereumRequest(Id, Request);
 
-    //DWalletReady.ExecuteIfBound();
-
-    Transport->OnSuccess();
+    OnMetamaskWalletReady.Broadcast();
 }
 
 void UMetamaskWallet::InitializeState()
@@ -246,7 +235,7 @@ void UMetamaskWallet::OnSocketConnected()
 {
     FString ChannelId = Session->SessionData.ChannelId;
     UE_LOG(LogTemp, Log, TEXT("Socket Connected"));
-    UE_LOG(LogTemp, Log, TEXT("Channel ID: %s"), *ChannelId);
+    //UE_LOG(LogTemp, Log, TEXT("Channel ID: %s"), *ChannelId);
     
     Socket->On(MessageEventName, [this](FString Response, TSharedPtr<FJsonValue> JsonValue)
     {
@@ -291,8 +280,15 @@ void UMetamaskWallet::LeaveChannel(FString ChannelId)
 
 void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJsonValue> &JsonValue)
 {
-    UE_LOG(LogTemp, Log, TEXT("Message received"));
-    UE_LOG(LogTemp, Log, TEXT("%s"), *Response);
+    //UE_LOG(LogTemp, Log, TEXT("Message received"));
+    //UE_LOG(LogTemp, Log, TEXT("%s"), *Response);
+
+    // We will check to see if key handshake attempts goes into a loop and exceeds threshold, we disconnect;
+    if (KeyStartHandshakeAttempts > UMetamaskWallet::KEY_HANDSHAKE_ATTEMPTS_THRESHOLD)
+    {
+        Disconnect();
+        return;
+    }
 
     TSharedPtr<FJsonObject> JsonObject;
 
@@ -323,7 +319,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
             TSharedRef<TJsonWriter<TCHAR>> JsonWriter = TJsonWriterFactory<TCHAR>::Create(&JsonString);
             FJsonSerializer::Serialize(JsonObject.ToSharedRef(), JsonWriter);
 
-            UE_LOG(LogTemp, Log, TEXT("Object is %s"), *JsonString);
+            //UE_LOG(LogTemp, Log, TEXT("Object is %s"), *JsonString);
 
             if (JsonObject->TryGetObjectField(TEXT("message"), MessageObject)) {
                 if (MessageObject->Get()->TryGetStringField(TEXT("type"), MessageType))
@@ -335,8 +331,8 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
             {
             }
 
-            UE_LOG(LogTemp, Log, TEXT("Message is %s"), *Message);
-            UE_LOG(LogTemp, Log, TEXT("MessageType is %s"), *MessageType);
+            //UE_LOG(LogTemp, Log, TEXT("Message is %s"), *Message);
+            //UE_LOG(LogTemp, Log, TEXT("MessageType is %s"), *MessageType);
 
             if (MessageType == "key_handshake_start")
             {
@@ -362,6 +358,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
                         SendMessage(KeyExchangeACK.ToJsonObject(), false);
                         KeysExchanged = true;
                         SendOriginatorInfo();
+                        KeyStartHandshakeAttempts = 0; // Reset here as it is successful
                     }
                 }
             }
@@ -381,7 +378,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
                     return;
                 }
 
-                UE_LOG(LogTemp, Log, TEXT("%s"), *DecryptedJsonString); // FIXME
+                //UE_LOG(LogTemp, Log, TEXT("%s"), *DecryptedJsonString); // FIXME
 
                 TSharedPtr<FJsonObject> DecryptedJsonObject;
                 TSharedRef<TJsonReader<>> DecryptedJsonReader = TJsonReaderFactory<>::Create(DecryptedJsonString);
@@ -444,13 +441,12 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
 
 void UMetamaskWallet::OnOtpReceived(int32 Answer)
 {
-    UE_LOG(LogTemp, Log, TEXT("Displaying OTP Answer: %d"), Answer);
+    //UE_LOG(LogTemp, Log, TEXT("Displaying OTP Answer: %d"), Answer);
 }
 
 void UMetamaskWallet::OnClientsWaitingToJoin(FString Response, TSharedPtr<FJsonValue> JsonValue)
 {
     UE_LOG(LogTemp, Log, TEXT("Clients waiting to join"));
-    Transport->OnConnectRequest(ConnectionUrl);
 }
 
 void UMetamaskWallet::OnClientsConnected(FString Response, TSharedPtr<FJsonValue> JsonValue)
@@ -485,14 +481,14 @@ void UMetamaskWallet::OnWalletAuthorized()
     if (!Authorized)
     {
         Authorized = true;
-        //DWalletAuthorized.ExecuteIfBound();
+        OnMetamaskWalletAuthorized.ExecuteIfBound();
     }
 }
 
 void UMetamaskWallet::OnWalletUnauthorized()
 {
     Authorized = false;
-    //DWalletUnauthorized.ExecuteIfBound();
+    OnMetamaskWalletUnauthorized.ExecuteIfBound();
     Disconnect();
 }
 
@@ -519,7 +515,6 @@ void UMetamaskWallet::OnEthereumRequestReceived(FString Id, const TSharedPtr<FJs
                 OnWalletUnauthorized();
             }
 
-            Transport->OnFailure(Error);
             FMetamaskEthereumResponse Response;
             Response.Request = Request;
             Response.Result = DataObject;
@@ -567,7 +562,7 @@ void UMetamaskWallet::OnEthereumRequestReceived(const TSharedPtr<FJsonObject>* D
     FString Method;
     if (DataObject->Get()->TryGetStringField(TEXT("method"), Method))
     {
-        UE_LOG(LogTemp, Log, TEXT("Method %s"), *Method);
+        //UE_LOG(LogTemp, Log, TEXT("Method %s"), *Method);
         const TSharedPtr<FJsonObject>* ParamsObject;
         const TArray<TSharedPtr<FJsonValue>>* ParamsArr;
         if (Method == "metamask_accountsChanged")
@@ -595,7 +590,7 @@ void UMetamaskWallet::OnAccountsChanged(FString Address)
 {
     UE_LOG(LogTemp, Log, TEXT("Account changed"));
     SelectedAddress = Address;
-    //DAccountChanged.ExecuteIfBound();
+    OnMetamaskAccountChanged.ExecuteIfBound();
     if (Paused)
     {
         OnWalletReady();
@@ -606,27 +601,13 @@ void UMetamaskWallet::OnChainIdChanged(FString NewChainId)
 {
     UE_LOG(LogTemp, Log, TEXT("Chain Id changed"));
     SelectedChainId = NewChainId;
-    //DChainIdChanged.ExecuteIfBound();
+    OnMetamaskChainIdChanged.ExecuteIfBound();
 }
 
-void UMetamaskWallet::SendEthereumRequest(FString Id, FMetamaskEthereumRequest Request, bool OpenTransport)
+void UMetamaskWallet::SendEthereumRequest(FString Id, FMetamaskEthereumRequest Request)
 {
     Request.Id = Id;
     UE_LOG(LogTemp, Log, TEXT("Sending a new request"));
 
     SendMessage(Request.ToJsonObject(), true);
-
-    if (OpenTransport)
-    {
-        Transport->OnRequest(Id, Request);
-    }
-}
-
-bool UMetamaskWallet::ShouldOpenMM(FString Method)
-{
-    if (Method == "eth_requestAccounts" && SelectedAddress.IsEmpty())
-    {
-        return true;
-    }
-    return false;
 }

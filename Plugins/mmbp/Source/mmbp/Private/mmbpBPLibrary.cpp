@@ -53,12 +53,11 @@ UTexture2D* UmmbpBPLibrary::GenerateQrCode(FString TextToConvert)
 UMetamaskWallet* UmmbpBPLibrary::InitializeWallet()
 {
 	UMetamaskSession* Session = new UMetamaskSession();
-	UMetamaskTransport* Transport = new UMetamaskTransport();
 	UMetamaskSocketWrapper* Socket = new UMetamaskSocketWrapper();
 	FString SocketUrl = TEXT("https://metamask-sdk-socket.metafi.codefi.network");
 	//FString SocketUrl = TEXT("http://localhost:3000");
 	UMetamaskWallet* Wallet = NewObject<UMetamaskWallet>();
-	Wallet->Initialize(Session, Transport, Socket, SocketUrl);
+	Wallet->Initialize(Session, Socket, SocketUrl);
 	UE_LOG(LogTemp, Log, TEXT("Initialised Wallet"));
 
 	return Wallet;
@@ -102,12 +101,19 @@ bool UmmbpBPLibrary::IsWalletAuthorized(UMetamaskWallet* Wallet)
 	return false;
 }
 
-void UmmbpBPLibrary::SetupCallbacks(UMetamaskWallet* Wallet, const FOnDisconnectDelegate& OnDisconnect)
+void UmmbpBPLibrary::SetupCallbacks(
+	UMetamaskWallet* Wallet,
+	const FWalletDisconnectDelegate& WalletDisconnect,
+	const FWalletConnectDelegate& WalletConnect
+)
 {
-	Wallet->OnWalletDisconnectedCallback = [OnDisconnect, Wallet]() {
-		if (OnDisconnect.IsBound())
-		{
-			OnDisconnect.Execute();
-		}
-	};
+	Wallet->OnMetamaskWalletConnected.BindLambda([WalletConnect, Wallet]() {
+		WalletConnect.ExecuteIfBound();
+	});
+	Wallet->OnMetamaskWalletDisconnected.BindLambda([WalletDisconnect, Wallet]() {
+		WalletDisconnect.ExecuteIfBound();
+	});
+	Wallet->OnMetamaskWalletReady.AddLambda([]() {
+
+	});
 }
