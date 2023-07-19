@@ -52,13 +52,13 @@ void UMetamaskSocketWrapper::Dispose()
 
 void UMetamaskSocketWrapper::Emit(FString EventName, FMetamaskMessage Message)
 {
-	UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message.ToJsonString());
+	//UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message.ToJsonString());
 	Socket->Emit(EventName, Message.ToJsonObject());
 }
 
 void UMetamaskSocketWrapper::Emit(FString EventName, FString Message)
 {
-	UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message);
+	//UE_LOG(LogTemp, Log, TEXT("Socket Emit: %s %s"), *EventName, *Message);
 	Socket->Emit(EventName, Message);
 }
 

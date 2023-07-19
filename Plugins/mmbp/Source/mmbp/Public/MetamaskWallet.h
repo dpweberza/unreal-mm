@@ -26,7 +26,7 @@ DECLARE_DELEGATE(FOnMetamaskWalletUnauthorized);
 DECLARE_DELEGATE(FOnMetamaskAccountChanged);
 DECLARE_DELEGATE(FOnMetamaskChainIdChanged);
 
-UCLASS()
+UCLASS(Blueprintable)
 class MMBP_API UMetamaskWallet: public UObject
 {
 	GENERATED_BODY()

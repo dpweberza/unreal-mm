@@ -5,7 +5,7 @@
 UMetamaskSession::UMetamaskSession(): Ecies(UECIES::GetInstance())
 {
 	ProtectedPublicKey = Ecies.GetPublicKey();
-	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
+	//UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
 
 	// Test
 	//Ecies.SetPrivateKey("cbb47872e2d0cbfce30ccadda165303bc52d02378ab30c87cd5777bcfc2a36ca");
@@ -28,7 +28,7 @@ UMetamaskSession::UMetamaskSession(UECIES& InEcies, FMetamaskSessionData InSessi
 	SessionData(InSessionData)
 {
 	ProtectedPublicKey = Ecies.GetPublicKey();
-	UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
+	//UE_LOG(LogTemp, Log, TEXT("Public key is %s"), *ProtectedPublicKey);
 }
 
 UMetamaskSession::~UMetamaskSession()
@@ -46,8 +46,8 @@ FMetamaskMessage UMetamaskSession::PrepareMessage(TSharedPtr<FJsonObject> &Data,
 	Message.Id = SessionData.ChannelId;
 	if (Encrypt)
 	{
-		UE_LOG(LogTemp, Log, TEXT("Checking we have wallet public key: %s"), *WalletPublicKey);
-		UE_LOG(LogTemp, Log, TEXT("Message is %s"), *JsonString);
+		//UE_LOG(LogTemp, Log, TEXT("Checking we have wallet public key: %s"), *WalletPublicKey);
+		//UE_LOG(LogTemp, Log, TEXT("Message is %s"), *JsonString);
 		Message.Message = Ecies.EncryptWithKey(JsonString, WalletPublicKey);
 	}
 	else {

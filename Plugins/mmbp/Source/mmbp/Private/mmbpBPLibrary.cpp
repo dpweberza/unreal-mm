@@ -98,6 +98,7 @@ bool UmmbpBPLibrary::IsWalletAuthorized(UMetamaskWallet* Wallet)
 	if (Wallet != nullptr) {
 		return Wallet->IsAuthorized();
 	}
+	UE_LOG(LogTemp, Log, TEXT("WalletAuthorized - Wallet pointer is null"));
 	return false;
 }
 

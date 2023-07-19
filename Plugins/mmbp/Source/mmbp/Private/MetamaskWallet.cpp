@@ -103,7 +103,10 @@ void UMetamaskWallet::Disconnect()
     Paused = false;
     KeysExchanged = false;
 
-    SubmittedRequests.Empty();
+    if (SubmittedRequests.Num() > 0)
+    {
+        SubmittedRequests.Empty();
+    }
 
     WalletPublicKey = FString();
     SelectedAddress = FString();
@@ -115,7 +118,10 @@ void UMetamaskWallet::Disconnect()
     {
         Socket->DisconnectAsync();
     }
-    OnMetamaskWalletDisconnected.ExecuteIfBound();
+    if (OnMetamaskWalletDisconnected.IsBound())
+    {
+        OnMetamaskWalletDisconnected.ExecuteIfBound();
+    }
 }
 
 void UMetamaskWallet::Dispose()
@@ -378,7 +384,7 @@ void UMetamaskWallet::OnMessageReceived(FString Response, const TSharedPtr<FJson
                     return;
                 }
 
-                //UE_LOG(LogTemp, Log, TEXT("%s"), *DecryptedJsonString); // FIXME
+                UE_LOG(LogTemp, Log, TEXT("%s"), *DecryptedJsonString); // FIXME
 
                 TSharedPtr<FJsonObject> DecryptedJsonObject;
                 TSharedRef<TJsonReader<>> DecryptedJsonReader = TJsonReaderFactory<>::Create(DecryptedJsonString);
