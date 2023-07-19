@@ -35,7 +35,7 @@ public:
 	UMetamaskWallet();
 	~UMetamaskWallet();
 
-	void Initialize(UMetamaskSession* session, UMetamaskSocketWrapper* socket, FString socketUrl);
+	void Initialize(UMetamaskSession* Session, UMetamaskSocketWrapper* Socket, FString SocketUrl, FString GameTitle, FString GameUrl);
 	void Request(FMetamaskEthereumRequest Request);
 	FString Connect();
 	void Disconnect();
@@ -112,4 +112,6 @@ protected:
 private:
 	int32 KeyStartHandshakeAttempts;
 	static int32 KEY_HANDSHAKE_ATTEMPTS_THRESHOLD;
+	FString GameUrl;
+	FString GameTitle;
 };

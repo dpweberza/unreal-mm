@@ -57,7 +57,7 @@ UMetamaskWallet* UmmbpBPLibrary::InitializeWallet()
 	FString SocketUrl = TEXT("https://metamask-sdk-socket.metafi.codefi.network");
 	//FString SocketUrl = TEXT("http://localhost:3000");
 	UMetamaskWallet* Wallet = NewObject<UMetamaskWallet>();
-	Wallet->Initialize(Session, Socket, SocketUrl);
+	Wallet->Initialize(Session, Socket, SocketUrl, "Shardbound", "www.shardbound.com");
 	UE_LOG(LogTemp, Log, TEXT("Initialised Wallet"));
 
 	return Wallet;

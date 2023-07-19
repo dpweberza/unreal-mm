@@ -17,11 +17,13 @@ TArray<FString> UMetamaskWallet::MethodsToRedirect = {
 };
 int32 UMetamaskWallet::KEY_HANDSHAKE_ATTEMPTS_THRESHOLD = 10;
 
-void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskSocketWrapper* InSocket, FString InSocketUrl)
+void UMetamaskWallet::Initialize(UMetamaskSession* InSession, UMetamaskSocketWrapper* InSocket, FString InSocketUrl, FString InGameUrl, FString InGameTitle)
 {
     Session = InSession;
     Socket = InSocket;
     SocketUrl = InSocketUrl;
+    GameTitle = InGameTitle;
+    GameUrl = InGameUrl;
 
     // Setting up callbacks
     Socket->OnConnectedCallback = [this]() {
@@ -48,10 +50,9 @@ UMetamaskWallet::UMetamaskWallet()
 
 UMetamaskWallet::~UMetamaskWallet()
 {
-    //Dispose();
-    //Session = nullptr;
-    //Socket = nullptr;
-    //Instance = nullptr;
+    Dispose();
+    Session = nullptr;
+    Socket = nullptr;
 }
 
 void UMetamaskWallet::Request(FMetamaskEthereumRequest Request)
@@ -164,8 +165,8 @@ void UMetamaskWallet::SendOriginatorInfo()
     TSharedPtr<FJsonObject> Request = MakeShareable(new FJsonObject());
     TSharedPtr<FJsonObject> OriginatorInfo = MakeShareable(new FJsonObject());
 
-    OriginatorInfo->SetStringField("title", "example");
-    OriginatorInfo->SetStringField("url", "example.com");
+    OriginatorInfo->SetStringField("title", GameTitle);
+    OriginatorInfo->SetStringField("url", GameUrl);
     OriginatorInfo->SetStringField("platform", "unreal");
     OriginatorInfo->SetStringField("apiVersion", "1.0");
 
